@@ -1,0 +1,60 @@
+{
+  "stats": {
+    "totalReports": 47,
+    "criticalAlerts": 3,
+    "pendingAnalysis": 2,
+    "openTasks": 8,
+    "resolvedToday": 4
+  },
+  "recentReports": [
+    {
+      "_id": "64b2c3d4e5f6a7b8c9d0e001",
+      "title": "Exposed electrical wiring near water pump",
+      "riskLevel": "CRITICAL",
+      "riskScore": 87,
+      "status": "analysis_complete",
+      "location": "Sector 4, Water Treatment Plant",
+      "createdAt": "2026-09-05T09:15:00Z"
+    },
+    {
+      "_id": "64b2c3d4e5f6a7b8c9d0e002",
+      "title": "Worker observed not wearing harness on elevated platform",
+      "riskLevel": "CRITICAL",
+      "riskScore": 79,
+      "status": "action_assigned",
+      "location": "Building C, Level 3",
+      "createdAt": "2026-09-04T14:30:00Z"
+    },
+    {
+      "_id": "64b2c3d4e5f6a7b8c9d0e003",
+      "title": "Chemical leak detected near storage tanks",
+      "riskLevel": "HIGH",
+      "riskScore": 71,
+      "status": "under_review",
+      "location": "Chemical Storage Area",
+      "createdAt": "2026-09-03T11:00:00Z"
+    },
+    {
+      "_id": "64b2c3d4e5f6a7b8c9d0e004",
+      "title": "Forklift operating in pedestrian zone",
+      "riskLevel": "HIGH",
+      "riskScore": 58,
+      "status": "analysis_complete",
+      "location": "Main Warehouse Corridor",
+      "createdAt": "2026-09-02T09:45:00Z"
+    }
+  ],
+  "riskDistribution": {
+    "LOW": 12,
+    "MEDIUM": 18,
+    "HIGH": 11,
+    "CRITICAL": 6
+  },
+  "trendData": [
+    { "date": "2026-09-01", "reports": 6, "critical": 0 },
+    { "date": "2026-09-02", "reports": 8, "critical": 1 },
+    { "date": "2026-09-03", "reports": 10, "critical": 2 },
+    { "date": "2026-09-04", "reports": 12, "critical": 1 },
+    { "date": "2026-09-05", "reports": 11, "critical": 3 }
+  ]
+}
