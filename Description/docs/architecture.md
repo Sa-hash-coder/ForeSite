@@ -1,8 +1,8 @@
-# SIF-Sentinel — System Architecture
+# ForeSite — System Architecture
 
 ## Overview
 
-SIF-Sentinel is an AI-powered industrial safety intelligence platform. It processes safety/incident reports, identifies Serious Injury and Fatality (SIF) precursors, scores risk, and routes corrective actions through a closed-loop workflow.
+ForeSite is an AI-powered industrial safety intelligence platform. It processes safety/incident reports, identifies Serious Injury and Fatality (SIF) precursors, scores risk, and routes corrective actions through a closed-loop workflow.
 
 ---
 
@@ -93,7 +93,7 @@ Login → POST /api/auth/login → JWT (payload: { id, email, role })
                             roleGuard.js checks role vs allowed roles
 ```
 
-**Roles for SIF-Sentinel:**
+**Roles for ForeSite:**
 - `worker` — submits reports
 - `safety_officer` — views AI analysis, assigns tasks
 - `maintenance` — resolves assigned tasks

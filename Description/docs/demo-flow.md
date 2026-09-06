@@ -1,4 +1,4 @@
-# SIF-Sentinel — Demo Flow
+# ForeSite — Demo Flow
 
 ## 3–5 Minute Demo Script
 
