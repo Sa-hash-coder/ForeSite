@@ -25,8 +25,9 @@ def test_kb_integrity():
         assert "description" in p
         assert "base_weight" in p
         assert "keywords" in p
+        assert "remediation_steps" in p and len(p["remediation_steps"]) > 0
         assert 0.0 <= p["base_weight"] <= 1.0
-    print(f"PASSED: Knowledge Base contains {len(PRECURSOR_KB)} valid SIF precursors.")
+    print(f"PASSED: Knowledge Base contains {len(PRECURSOR_KB)} valid SIF precursors with remediation steps.")
 
 def test_engine_critical_hazard():
     print("\n--- Test 2: Engine Analysis of Critical Hazard ---")
@@ -41,13 +42,15 @@ def test_engine_critical_hazard():
     )
 
     print(f"Result: Score={result['risk_score']}, Level={result['risk_level']}, Precursors={result['precursors']}")
+    print(f"Suggestions: {result['recommendations']}")
     assert result["risk_score"] >= 75, f"Expected CRITICAL score >=75, got {result['risk_score']}"
     assert result["risk_level"] == "CRITICAL"
     assert result["sif_probability"] >= 0.70
     assert len(result["precursors"]) > 0
     assert len(result["hazards"]) > 0
+    assert len(result["recommendations"]) > 0
     assert "explanation" in result and len(result["explanation"]) <= 600
-    print("PASSED: Critical hazard correctly identified and scored.")
+    print("PASSED: Critical hazard correctly identified and scored with fix recommendations.")
 
 def test_engine_low_hazard():
     print("\n--- Test 3: Engine Analysis of Low Hazard ---")
@@ -115,16 +118,42 @@ def test_flask_endpoints():
     # Verify against ai-contract.md specs
     required_fields = [
         "risk_score", "risk_level", "sif_probability", "precursors",
-        "hazards", "explanation", "extracted_image_context", "extracted_audio_context",
+        "hazards", "recommendations", "explanation", "extracted_image_context", "extracted_audio_context",
         "model_version", "processing_time_ms", "is_fallback", "extraction_fallback"
     ]
     for field in required_fields:
         assert field in data, f"Missing contract field: {field}"
 
+    assert isinstance(data["recommendations"], list) and len(data["recommendations"]) > 0, "Expected recommendations"
     assert 0 <= data["risk_score"] <= 100
     assert data["risk_level"] in ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
     assert 0.0 <= data["sif_probability"] <= 1.0
-    print(f"PASSED: /analyze response matches AI contract perfectly: Score={data['risk_score']} Level={data['risk_level']} Time={data['processing_time_ms']}ms")
+    print(f"PASSED: /analyze response matches AI contract perfectly: Score={data['risk_score']} Level={data['risk_level']} Recs={len(data['recommendations'])} Time={data['processing_time_ms']}ms")
+
+def test_severity_boost():
+    """
+    Test 5: Worker self-reported severity should nudge the final risk score.
+    A 'critical' self-report should give a higher score than 'low' for same incident.
+    """
+    print("\n--- Test 5: Severity Boost Influence ---")
+    base_params = {
+        "report_id": "test-sev-01",
+        "title": "Worker climbing unmarked ladder",
+        "description": "Old wooden ladder being used to reach storage shelf above warehouse floor. No spotter present.",
+        "location": "Warehouse Bay 2"
+    }
+
+    result_low = analyze_report(**base_params, severity="low")
+    result_critical = analyze_report(**base_params, severity="critical")
+
+    print(f"Score with severity=low     : {result_low['risk_score']}")
+    print(f"Score with severity=critical: {result_critical['risk_score']}")
+
+    assert result_critical["risk_score"] >= result_low["risk_score"], (
+        f"Expected critical ({result_critical['risk_score']}) >= low ({result_low['risk_score']})"
+    )
+    print("PASSED: severity=critical produced >= score compared to severity=low.")
+
 
 if __name__ == "__main__":
     print("Starting ForeSite AI Service Verification Tests...")
@@ -132,6 +161,7 @@ if __name__ == "__main__":
     test_engine_critical_hazard()
     test_engine_low_hazard()
     test_flask_endpoints()
+    test_severity_boost()
     print("\n==========================================")
     print("ALL AI SERVICE TESTS PASSED SUCCESSFULLY!")
     print("==========================================")

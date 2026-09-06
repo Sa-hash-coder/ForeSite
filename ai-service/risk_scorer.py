@@ -40,6 +40,14 @@ _model_source = None
 _cached_kb_embeddings = None
 _is_initialized = False
 
+# Severity boost: worker self-reported severity adds a small modifier to raw score
+SEVERITY_BOOST = {
+    "low": -5,       # Worker says low → slight penalty (might be under-reporting)
+    "medium": 0,     # Neutral
+    "high": +8,      # Worker says high → trust their field instinct
+    "critical": +12  # Worker says critical → strong signal even before AI
+}
+
 
 def load_ai_model():
     """
@@ -70,8 +78,8 @@ def load_ai_model():
         # This makes comparisons on CPU take only a few milliseconds!
         texts = [f"{p['label']}: {p['description']}" for p in PRECURSOR_KB]
         _cached_kb_embeddings = _model_instance.encode(
-            texts, 
-            convert_to_numpy=True, 
+            texts,
+            convert_to_numpy=True,
             normalize_embeddings=True
         )
         logger.info(f"Successfully loaded model and cached {len(texts)} precursor embeddings.")
@@ -110,7 +118,7 @@ def match_precursors_by_keywords(text: str) -> List[Dict[str, Any]]:
             # Simple word boundary regex match (e.g. finds 'bare wire' or 'harness')
             if re.search(r"\b" + re.escape(keyword) + r"\b", text_clean):
                 hit_count += 1
-        
+
         if hit_count > 0:
             # Score higher if more matching safety words appear
             sim_score = min(0.95, 0.65 + hit_count * 0.10)
@@ -185,7 +193,7 @@ def identify_hazards(text: str, matched_precursors: List[Dict[str, Any]]) -> Lis
         "Crush Injury": ["suspended", "hoist", "crane", "pallet", "unstable stack", "crush"],
         "Caught-In/Between": ["roller", "conveyor", "entanglement", "missing guard", "pinch point"],
         "Amputation": ["blade", "saw", "gear", "nip point"],
-        "Toxic Exposure": ["fumes", "gas", "chemical", "solvent", "acid", "h2s leak"],
+        "Toxic Exposure": ["fumes", "gas", "chemical", "solvent", "acid", "h2s"],
         "Cave-In": ["trench", "excavation", "ditch", "cave-in", "collapse"],
         "Fire & Explosion": ["flammable", "fuel", "gas cylinder", "sparks near fuel"],
     }
@@ -210,7 +218,7 @@ def compute_evidence_bonus(image_context: Optional[str], audio_context: Optional
     if image_context:
         img_text = image_context.lower()
         if any(w in img_text for w in ["exposed", "bare", "damaged", "visible", "unsecured", "leak"]):
-            bonus += CONTEXT_BONUS["image_confirms_hazard"]   # +5
+            bonus += CONTEXT_BONUS["image_confirms_hazard"]     # +5
         if any(w in img_text for w in ["no ppe", "missing helmet", "without harness", "unprotected"]):
             bonus += CONTEXT_BONUS["image_shows_ppe_violation"]  # +8
 
@@ -225,6 +233,52 @@ def compute_evidence_bonus(image_context: Optional[str], audio_context: Optional
     return min(bonus, MAX_CONTEXT_BONUS)
 
 
+def apply_severity_boost(raw_score: float, severity: Optional[str]) -> float:
+    """
+    Applies a small adjustment based on the worker's self-reported severity.
+    Workers on-site often have strong intuition about how serious a situation is.
+    Note: This intentionally has a limited effect — the AI score dominates.
+    """
+    if not severity:
+        return raw_score
+
+    boost = SEVERITY_BOOST.get(severity.strip().lower(), 0)
+    boosted = raw_score + boost
+
+    # Severity boost cannot take a LOW score into CRITICAL range on its own
+    # It only matters at the margins (close to a boundary)
+    return boosted
+
+
+def extract_recommendations(matched_items: List[Dict[str, Any]]) -> List[str]:
+    """
+    Extracts actionable safety fix suggestions from matched SIF precursors.
+    Takes the single best step from each top precursor (diverse actions),
+    instead of multiple steps from only one precursor.
+    """
+    recommendations = []
+
+    for item in matched_items:
+        steps = item["precursor"].get("remediation_steps", [])
+        if steps:
+            # Take only the FIRST (most critical) step from each matched precursor
+            top_step = steps[0]
+            if top_step not in recommendations:
+                recommendations.append(top_step)
+        if len(recommendations) >= 3:
+            break
+
+    # If no specific precursor hit, provide standard preventive guidelines
+    if not recommendations:
+        recommendations = [
+            "Conduct on-site supervisor inspection and log incident in daily hazard register.",
+            "Verify area is cordoned off if active risk persists.",
+            "Schedule preventive maintenance review."
+        ]
+
+    return recommendations
+
+
 def build_explanation_text(
     title: str,
     description: str,
@@ -233,11 +287,12 @@ def build_explanation_text(
     risk_level: str,
     sif_probability: float,
     image_context: Optional[str],
-    audio_context: Optional[str]
+    audio_context: Optional[str],
+    recommendations: Optional[List[str]] = None
 ) -> str:
     """
-    Builds a clear, professional explanation of the safety hazard for supervisors.
-    Keeps it under 600 characters as required by the API contract.
+    Builds a clear, professional explanation of the safety hazard for supervisors,
+    including the primary recommended fix. Keeps it under 600 characters as required.
     """
     sentences = []
 
@@ -256,10 +311,17 @@ def build_explanation_text(
         first_audio = audio_context.split(".")[0].strip()
         sentences.append(f"Audio record noted: {first_audio}.")
 
+    # Primary recommended fix (most important one only, to keep text short)
+    if recommendations:
+        sentences.append(f"Recommended action: {recommendations[0]}")
+
     # Actionable conclusion
     pct = int(sif_probability * 100)
     if risk_level in ["CRITICAL", "HIGH"]:
-        sentences.append(f"Identified {len(precursor_labels)} SIF precursors with {pct}% SIF probability. Immediate mitigation required.")
+        sentences.append(
+            f"Identified {len(precursor_labels)} SIF precursors with {pct}% SIF probability. "
+            f"Immediate mitigation required."
+        )
     else:
         sentences.append(f"SIF probability is {pct}%. Standard maintenance recommended.")
 
@@ -282,7 +344,7 @@ def analyze_report(
 ) -> Dict[str, Any]:
     """
     The main analysis pipeline function:
-    Combines inputs -> Runs detection -> Computes score -> Returns structured JSON.
+    Combines inputs -> Runs detection -> Computes score -> Recommends fixes -> Returns structured JSON.
     """
     start_time = time.time()
 
@@ -306,12 +368,15 @@ def analyze_report(
     # Step 3: Identify hazards
     hazards = identify_hazards(full_text, matches)
 
-    # Step 4: Calculate the mathematical risk score (0 to 100)
+    # Step 4: Extract diverse fix recommendations (one best step per matched precursor)
+    recommendations = extract_recommendations(matches)
+
+    # Step 5: Calculate the mathematical risk score (0 to 100)
     if matches:
         # Get the highest severity weight among matched precursors
         max_severity = max(m["precursor"]["base_weight"] for m in matches)
         avg_severity = sum(m["precursor"]["base_weight"] for m in matches) / len(matches)
-        
+
         # Base formula: 70% highest severity + 30% average severity, scaled to 80 points
         base_score = (max_severity * 0.70 + avg_severity * 0.30) * 80.0
 
@@ -321,6 +386,9 @@ def analyze_report(
     else:
         # Default low score for reports with no SIF precursors
         raw_score = 15.0
+
+    # Apply worker-reported severity (small marginal influence, not dominant)
+    raw_score = apply_severity_boost(raw_score, severity)
 
     # Add evidence bonuses from image/audio
     evidence_bonus = compute_evidence_bonus(image_context, audio_context)
@@ -336,17 +404,21 @@ def analyze_report(
     else:
         risk_level = "LOW"
 
-    # Calculate SIF probability (0.0 to 1.0)
+    # Calculate SIF probability (0.0 to 1.0) — smooth linear interpolation per band
     if final_score >= 75:
-        sif_probability = round(min(0.98, 0.75 + (final_score - 75) * 0.009), 2)
+        # CRITICAL band: 75→100 maps to 0.75→0.98
+        sif_probability = round(0.75 + (final_score - 75) * (0.23 / 25), 2)
     elif final_score >= 50:
-        sif_probability = round(0.45 + (final_score - 50) * 0.011, 2)
+        # HIGH band: 50→75 maps to 0.45→0.75
+        sif_probability = round(0.45 + (final_score - 50) * (0.30 / 25), 2)
     elif final_score >= 25:
-        sif_probability = round(0.15 + (final_score - 25) * 0.011, 2)
+        # MEDIUM band: 25→50 maps to 0.15→0.45
+        sif_probability = round(0.15 + (final_score - 25) * (0.30 / 25), 2)
     else:
-        sif_probability = round(max(0.02, final_score * 0.005), 2)
+        # LOW band: 5→25 maps to 0.02→0.15
+        sif_probability = round(0.02 + max(0, (final_score - 5)) * (0.13 / 20), 2)
 
-    # Step 5: Build explanation
+    # Step 6: Build explanation including top fix suggestion
     explanation = build_explanation_text(
         title=title,
         description=description,
@@ -355,18 +427,24 @@ def analyze_report(
         risk_level=risk_level,
         sif_probability=sif_probability,
         image_context=image_context,
-        audio_context=audio_context
+        audio_context=audio_context,
+        recommendations=recommendations
     )
 
     elapsed_ms = int((time.time() - start_time) * 1000)
+    logger.info(
+        f"[{report_id}] Analysis complete — Score: {final_score}, Level: {risk_level}, "
+        f"Precursors: {len(precursor_names)}, Fallback: {is_fallback}, Time: {elapsed_ms}ms"
+    )
 
-    # Return the clean, standard response
+    # Return the clean, standard response with recommendations
     return {
         "risk_score": final_score,
         "risk_level": risk_level,
         "sif_probability": sif_probability,
         "precursors": precursor_names,
         "hazards": hazards,
+        "recommendations": recommendations,
         "explanation": explanation,
         "extracted_image_context": image_context,
         "extracted_audio_context": audio_context,

@@ -91,6 +91,7 @@ def _clean_base64(data_str: str) -> Tuple[bytes, str]:
 def extract_from_image(image_base64: Optional[str]) -> Tuple[Optional[str], bool]:
     """
     Extracts visible hazard description from base64 image.
+    Rejects images larger than 10 MB to avoid wasting Gemini API quota.
     Returns (extracted_text, is_fallback).
     """
     if not image_base64 or not image_base64.strip():
@@ -102,6 +103,15 @@ def extract_from_image(image_base64: Optional[str]) -> Tuple[Optional[str], bool
 
     try:
         raw_bytes, mime_type = _clean_base64(image_base64)
+
+        # Guard: reject images over 10 MB — Gemini works best under 4 MB anyway
+        MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
+        if len(raw_bytes) > MAX_IMAGE_BYTES:
+            logger.warning(
+                f"Image too large ({len(raw_bytes) // (1024*1024)} MB). "
+                f"Rejecting to protect API quota."
+            )
+            return None, True
         image_part = {
             "mime_type": mime_type,
             "data": raw_bytes

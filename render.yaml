@@ -1,0 +1,47 @@
+services:
+  # ForeSite AI Microservice (Python)
+  - type: web
+    name: foresite-ai
+    runtime: docker
+    dockerContext: ./ai-service
+    dockerfilePath: ./ai-service/Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: AI_API_KEY
+        generateValue: true
+      - key: MODEL_NAME
+        value: all-MiniLM-L6-v2
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: EXTRACTION_PROVIDER
+        value: gemini
+
+  # ForeSite Express Backend (Node.js)
+  - type: web
+    name: foresite-backend
+    runtime: node
+    rootDir: app/backend
+    buildCommand: npm install
+    startCommand: node src/server.js
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AI_SERVICE_URL
+        fromService:
+          name: foresite-ai
+          type: web
+          property: host
+      - key: AI_SERVICE_API_KEY
+        fromService:
+          name: foresite-ai
+          type: web
+          envVarKey: AI_API_KEY

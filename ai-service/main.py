@@ -85,6 +85,11 @@ def mock_analyze():
             "Arc Flash",
             "Burns"
         ],
+        "recommendations": [
+            "Immediately de-energize and lock out (LOTO) electrical feed at source breaker.",
+            "Install red perimeter barricade tape and 'DANGER - HIGH VOLTAGE' warning signage.",
+            "Replace damaged cables with IP67-rated insulated industrial conduit before re-energizing."
+        ],
         "explanation": "This report describes exposed energized wiring in proximity to water sources — a classic SIF precursor combination. Image analysis confirmed bare copper conductors visible. Voice note revealed the hazard has been present for approximately 2 weeks. Immediate circuit isolation and repair is critical.",
         "extracted_image_context": "Image shows: bare copper wires exposed at a junction box. No insulation visible. Floor appears damp.",
         "extracted_audio_context": "Transcript: Worker states this wiring condition has existed for about two weeks with no action taken.",
@@ -125,11 +130,15 @@ def analyze():
             "detail": "Fields 'report_id', 'title', and 'description' are required"
         }), 400
 
-    if len(str(description).strip()) < 5:
+    # Descriptions under 10 characters are too vague to analyze meaningfully
+    if len(str(description).strip()) < 10:
         return jsonify({
             "error": "Unprocessable Entity",
-            "detail": "Field 'description' must contain at least 5 characters"
+            "detail": "Field 'description' must contain at least 10 characters for meaningful analysis"
         }), 422
+
+    logger.info(f"[{report_id}] Incoming analysis request — title: '{str(title)[:60]}', "
+                f"has_image: {bool(data.get('image_base64'))}, has_audio: {bool(data.get('audio_base64'))}")
 
     # Stage 1: Multimodal extraction
     image_context = None
