@@ -44,25 +44,32 @@ export interface Translations {
   noReportsYet: string;
   noReportsSub: string;
 
-  // Submit Form
+  // Simplified Submit Form (Voice-First)
   submitTitle: string;
   submitSubtitle: string;
-  whatHappened: string;
-  whatHappenedHint: string;
-  whatHappenedPlaceholder: string;
-  describeIssue: string;
-  describeHint: string;
-  describePlaceholder: string;
   locationLabel: string;
   selectLocation: string;
-  issueTypeLabel: string;
-  categories: Record<string, string>;
-  severityLabel: string;
-  severities: Record<string, { title: string; desc: string }>;
+  
+  voiceMainTitle: string;
+  voiceMainSubtitle: string;
+  voiceHoldToSpeak: string;
+  voiceTapToSpeak: string;
+  voiceListeningNow: string;
+  voiceRecordingTimer: string;
+  voiceRecordedSuccess: string;
+  voiceReRecord: string;
+  voiceDelete: string;
+  voiceAutoTranscribed: string;
+
+  optionalTextLabel: string;
+  optionalTextPlaceholder: string;
+  optionalTextHint: string;
+
   photoLabel: string;
   photoHint: string;
   photoBtn: string;
   removePhoto: string;
+
   submitBtn: string;
   submitting: string;
   submitSuccessTitle: string;
@@ -70,41 +77,21 @@ export interface Translations {
   viewMyReports: string;
   submitAnother: string;
 
-  // Voice features in form
-  voiceTypingTitle: string;
-  voiceTypingStart: string;
-  voiceTypingListening: string;
-  voiceNoteLabel: string;
-  voiceNoteHint: string;
-  voiceNoteRecord: string;
-  voiceNoteRecording: string;
-  voiceNoteStop: string;
-  voiceNoteRecorded: string;
-  voiceNotePlay: string;
-  voiceNoteDelete: string;
-
-  // Validation errors
-  errTitle: string;
-  errDesc: string;
+  // Validation
   errLocation: string;
-  errCategory: string;
-  errSeverity: string;
+  errNoInput: string;
   errPhotoSize: string;
-  errVoiceNotSupported: string;
   errMicPermission: string;
 
-  // Report Details & Audio Playback
+  // Report Details
   dangerLevelTitle: string;
   suggestionsTitle: string;
   reportedDetailsTitle: string;
   actionTakenTitle: string;
   assignedTo: string;
   dueDate: string;
-  checkingStatus: string;
-  checkingStatusSub: string;
   listenAdviceBtn: string;
   stopListenAdviceBtn: string;
-  workerVoiceNoteTitle: string;
 
   // Locations
   locations: string[];
@@ -131,7 +118,7 @@ export const translations: Record<Language, Translations> = {
     },
 
     status: {
-      pending_analysis: "Reviewing...",
+      pending_analysis: "AI Analyzing...",
       analysis_complete: "Verified",
       under_review: "Officer Checking",
       action_assigned: "Fix In Progress",
@@ -142,7 +129,7 @@ export const translations: Record<Language, Translations> = {
     greeting: "Hello, Rajan 👋",
     greetingSub: "Safety first. If you see danger, report it immediately.",
     reportBtnTitle: "Report a Hazard / Danger",
-    reportBtnSub: "Tap here to submit a quick safety report",
+    reportBtnSub: "Hold the mic to speak or take a photo",
     statTotal: "Total Reports",
     statPending: "In Progress",
     statResolved: "Fixed & Safe",
@@ -152,74 +139,50 @@ export const translations: Record<Language, Translations> = {
     noReportsSub: "When you report an issue, it will appear here.",
 
     submitTitle: "Report a Hazard",
-    submitSubtitle: "Fill in simple details. We will alert the safety team immediately.",
-    whatHappened: "What is the problem? *",
-    whatHappenedHint: "Short title (e.g. Broken wire near water pump)",
-    whatHappenedPlaceholder: "e.g. Open live wire near water",
-    describeIssue: "Details / Location details *",
-    describeHint: "What danger do you see? Who is at risk?",
-    describePlaceholder: "Describe the danger briefly...",
-    locationLabel: "Where is it located? *",
+    submitSubtitle: "Press & hold the mic to speak. Our AI will automatically analyze the danger and alert the team.",
+    locationLabel: "1. Where is the danger located? *",
     selectLocation: "-- Select Location --",
-    issueTypeLabel: "Type of Danger *",
-    categories: {
-      near_miss: "Near Miss (Close Call)",
-      unsafe_condition: "Unsafe Condition / Place",
-      unsafe_act: "Unsafe Work / Practice",
-      equipment_failure: "Machine / Tool Breakdown",
-      chemical_exposure: "Gas / Chemical Leak",
-      other: "Other Problem",
-    },
-    severityLabel: "How dangerous is it? *",
-    severities: {
-      low: { title: "LOW", desc: "Minor issue, low chance of harm" },
-      medium: { title: "MEDIUM", desc: "Can cause injury if ignored" },
-      high: { title: "HIGH", desc: "Can cause serious injury" },
-      critical: { title: "CRITICAL", desc: "Life-threatening / immediate danger" },
-    },
-    photoLabel: "Attach Photo (Optional)",
-    photoHint: "A picture helps the repair team fix it faster",
+
+    voiceMainTitle: "2. Speak into the microphone (Main)",
+    voiceMainSubtitle: "Hold the button and describe what you see. We'll automatically convert it into text.",
+    voiceHoldToSpeak: "Press & Hold to Speak",
+    voiceTapToSpeak: "Tap or Hold to Speak",
+    voiceListeningNow: "🔴 Listening... Speak clearly now",
+    voiceRecordingTimer: "Recording",
+    voiceRecordedSuccess: "Voice message recorded",
+    voiceReRecord: "🔄 Re-record",
+    voiceDelete: "✕ Delete Audio",
+    voiceAutoTranscribed: "Transcribed from your voice:",
+
+    optionalTextLabel: "3. Extra written notes (Optional)",
+    optionalTextPlaceholder: "Your speech appears here automatically. You can also type manually if you prefer...",
+    optionalTextHint: "You can leave this blank if you have recorded your voice or added a photo.",
+
+    photoLabel: "4. Add a Photo (Optional)",
+    photoHint: "AI analyzes the photo to identify the danger automatically",
     photoBtn: "📷 Take or Pick a Photo",
     removePhoto: "✕ Remove Photo",
+
     submitBtn: "Send Report Now",
-    submitting: "Sending...",
+    submitting: "Sending to AI Analysis...",
     submitSuccessTitle: "Report Sent Successfully!",
-    submitSuccessMsg: "The safety team has been alerted. You can track repairs under My Reports.",
+    submitSuccessMsg: "Your voice & photo have been sent. AI is analyzing the danger level and assigning technicians.",
     viewMyReports: "View My Reports",
     submitAnother: "Report Another Issue",
 
-    voiceTypingTitle: "Speak to Type",
-    voiceTypingStart: "🎙️ Speak to Type",
-    voiceTypingListening: "🔴 Listening... Speak now",
-    voiceNoteLabel: "Record a Voice Note (Optional)",
-    voiceNoteHint: "Speak into your phone to explain what happened",
-    voiceNoteRecord: "🎙️ Start Voice Recording",
-    voiceNoteRecording: "🔴 Recording... Speak now (Tap to Stop)",
-    voiceNoteStop: "⏹️ Stop Recording",
-    voiceNoteRecorded: "Voice note recorded",
-    voiceNotePlay: "Play Audio",
-    voiceNoteDelete: "✕ Delete Voice Note",
+    errLocation: "Please select where the hazard is located.",
+    errNoInput: "Please record your voice, type a description, or attach a photo.",
+    errPhotoSize: "Photo is too large. Please choose a photo under 10 MB.",
+    errMicPermission: "Microphone permission is required. Please allow mic access.",
 
-    errTitle: "Please enter a title (at least 5 letters).",
-    errDesc: "Please enter a short description or record a voice note.",
-    errLocation: "Please select a location.",
-    errCategory: "Please choose the type of danger.",
-    errSeverity: "Please select danger level.",
-    errPhotoSize: "Photo is too large. Please select a smaller photo.",
-    errVoiceNotSupported: "Voice recognition is not supported on this browser. You can still record audio below.",
-    errMicPermission: "Microphone permission is required to record voice.",
-
-    dangerLevelTitle: "Danger Level",
+    dangerLevelTitle: "Danger Level (AI Assessed)",
     suggestionsTitle: "Safety Advice & Next Steps",
     reportedDetailsTitle: "What was reported",
     actionTakenTitle: "Repair & Action Progress",
     assignedTo: "Assigned To",
     dueDate: "Expected Fix Date",
-    checkingStatus: "Safety team is reviewing...",
-    checkingStatusSub: "The report is being processed. Action will be assigned shortly.",
     listenAdviceBtn: "🔊 Read Aloud (Listen)",
     stopListenAdviceBtn: "⏹️ Stop Voice",
-    workerVoiceNoteTitle: "Your Recorded Voice Message",
 
     locations: [
       "Boiler Room A",
@@ -231,7 +194,7 @@ export const translations: Record<Language, Translations> = {
       "Maintenance Workshop",
       "Roof / Height Work Area",
       "Water Treatment Plant",
-      "Warehouse",
+      "Warehouse Corridor",
       "Other Location",
     ],
   },
@@ -256,7 +219,7 @@ export const translations: Record<Language, Translations> = {
     },
 
     status: {
-      pending_analysis: "जांच जारी है...",
+      pending_analysis: "AI जांच कर रहा है...",
       analysis_complete: "सत्यापित",
       under_review: "अधिकारी जांच रहे हैं",
       action_assigned: "सुधार कार्य जारी है",
@@ -267,7 +230,7 @@ export const translations: Record<Language, Translations> = {
     greeting: "नमस्ते, राजन 👋",
     greetingSub: "सुरक्षा सबसे पहले। अगर कोई ख़तरा दिखे, तुरंत सूचित करें।",
     reportBtnTitle: "ख़तरा / समस्या दर्ज करें",
-    reportBtnSub: "नई रिपोर्ट भेजने के लिए यहाँ दबाएं",
+    reportBtnSub: "माइक दबाकर बोलें या फ़ोटो खींचें",
     statTotal: "कुल रिपोर्ट्स",
     statPending: "प्रगति पर",
     statResolved: "ठीक और सुरक्षित",
@@ -276,75 +239,51 @@ export const translations: Record<Language, Translations> = {
     noReportsYet: "अभी तक कोई रिपोर्ट नहीं है",
     noReportsSub: "जब आप कोई समस्या दर्ज करेंगे, वह यहाँ दिखाई देगी।",
 
-    submitTitle: "नया ख़तरा दर्ज करें",
-    submitSubtitle: "सरल जानकारी भरें या बोलकर बताएं। सुरक्षा टीम को तुरंत संदेश भेजा जाएगा।",
-    whatHappened: "क्या समस्या है? *",
-    whatHappenedHint: "संक्षिप्त नाम (जैसे: पानी के पास खुला तार)",
-    whatHappenedPlaceholder: "उदा. पानी के पास बिजली का खुला तार",
-    describeIssue: "कहाँ और क्या ख़तरा है? *",
-    describeHint: "क्या ख़तरा है? क्या किसी को चोट लग सकती है?",
-    describePlaceholder: "समस्या का विवरण लिखें या नीचे बोलकर बताएं...",
-    locationLabel: "स्थान कहाँ है? *",
+    submitTitle: "ख़तरा दर्ज करें",
+    submitSubtitle: "माइक दबाकर बोलें। AI अपने आप ख़तरे की गंभीरता समझकर सुरक्षा टीम को भेजेगा।",
+    locationLabel: "1. ख़तरा कहाँ है? (स्थान चुनें) *",
     selectLocation: "-- स्थान चुनें --",
-    issueTypeLabel: "ख़तरे का प्रकार *",
-    categories: {
-      near_miss: "हादसा होते-होते बचा (Near Miss)",
-      unsafe_condition: "असुरक्षित जगह / स्थिति",
-      unsafe_act: "असुरक्षित काम / तरीका",
-      equipment_failure: "मशीन / उपकरण की खराबी",
-      chemical_exposure: "गैस / केमिकल रिसाव",
-      other: "अन्य समस्या",
-    },
-    severityLabel: "ख़तरा कितना बड़ा है? *",
-    severities: {
-      low: { title: "कम (Low)", desc: "हल्की समस्या, चोट लगने की संभावना कम" },
-      medium: { title: "मध्यम (Medium)", desc: "ध्यान न देने पर चोट लग सकती है" },
-      high: { title: "ज़्यादा (High)", desc: "गंभीर चोट लग सकती है" },
-      critical: { title: "गंभीर (Critical)", desc: "जानलेवा / तुरंत ख़तरा" },
-    },
-    photoLabel: "फ़ोटो जोड़ें (ऐच्छिक)",
-    photoHint: "फ़ोटो देखकर टीम जल्दी समझ और ठीक कर पाएगी",
+
+    voiceMainTitle: "2. माइक दबाकर बोलें (मुख्य विकल्प)",
+    voiceMainSubtitle: "माइक बटन दबाकर रखें और बोलें। आपकी आवाज़ अपने आप नीचे लिख दी जाएगी।",
+    voiceHoldToSpeak: "माइक दबाकर रखें और बोलें",
+    voiceTapToSpeak: "दबाकर रखें या टैप करके बोलें",
+    voiceListeningNow: "🔴 सुन रहा हूँ... अभी बोलिए",
+    voiceRecordingTimer: "रिकॉर्डिंग",
+    voiceRecordedSuccess: "आपकी आवाज़ रिकॉर्ड हो गई",
+    voiceReRecord: "🔄 दोबारा बोलें",
+    voiceDelete: "✕ रिकॉर्डिंग हटाएं",
+    voiceAutoTranscribed: "आपकी आवाज़ से लिखा गया विवरण:",
+
+    optionalTextLabel: "3. लिखकर विवरण दें (ऐच्छिक - जरूरी नहीं)",
+    optionalTextPlaceholder: "जो आप बोलेंगे वह यहाँ अपने आप लिख जाएगा। चाहें तो खुद भी लिख सकते हैं...",
+    optionalTextHint: "अगर आपने आवाज़ रिकॉर्ड कर दी है या फ़ोटो लगा दी है, तो इसे खाली छोड़ सकते हैं।",
+
+    photoLabel: "4. फ़ोटो जोड़ें (ऐच्छिक)",
+    photoHint: "AI फ़ोटो देखकर ख़तरा अपने आप पहचान लेगा",
     photoBtn: "📷 फ़ोटो खींचें या चुनें",
     removePhoto: "✕ फ़ोटो हटाएं",
-    submitBtn: "रिपोर्ट भेजें",
-    submitting: "भेजा जा रहा है...",
+
+    submitBtn: "रिपोर्ट तुरंत भेजें",
+    submitting: "AI जांच हेतु भेजा जा रहा है...",
     submitSuccessTitle: "रिपोर्ट सफलतापूर्वक दर्ज हो गई!",
-    submitSuccessMsg: "सुरक्षा टीम को सूचित कर दिया गया है। आप 'मेरी रिपोर्ट्स' में स्थिति देख सकते हैं।",
+    submitSuccessMsg: "आपकी आवाज़ और फ़ोटो प्राप्त हो गई है। AI ख़तरे की जांच करके तुरंत सुधार टीम को भेज रहा है।",
     viewMyReports: "मेरी रिपोर्ट्स देखें",
-    submitAnother: "एक और रिपोर्ट दर्ज करें",
+    submitAnother: "एक और ख़तरा दर्ज करें",
 
-    voiceTypingTitle: "बोलकर लिखें (Voice Typing)",
-    voiceTypingStart: "🎙️ बोलकर लिखें (Voice Typing)",
-    voiceTypingListening: "🔴 सुन रहा हूँ... बोलिए",
-    voiceNoteLabel: "आवाज़ में रिकॉर्ड करें (वॉयस नोट)",
-    voiceNoteHint: "अगर लिखना नहीं चाहते, तो अपनी आवाज़ में बोलकर रिकॉर्ड करें",
-    voiceNoteRecord: "🎙️ आवाज़ में रिकॉर्ड करें (वॉयस नोट)",
-    voiceNoteRecording: "🔴 रिकॉर्डिंग चालू है... बोलें (रोकने के लिए दबाएं)",
-    voiceNoteStop: "⏹️ रिकॉर्डिंग रोकें",
-    voiceNoteRecorded: "वॉयस नोट रिकॉर्ड हो गया",
-    voiceNotePlay: "आवाज़ सुनें",
-    voiceNoteDelete: "✕ रिकॉर्डिंग हटाएं",
-
-    errTitle: "कृपया समस्या का नाम लिखें या बोलकर बताएं।",
-    errDesc: "कृपया विवरण लिखें या वॉयस नोट रिकॉर्ड करें।",
-    errLocation: "कृपया स्थान चुनें।",
-    errCategory: "कृपया ख़तरे का प्रकार चुनें।",
-    errSeverity: "कृपया ख़तरे का स्तर चुनें।",
+    errLocation: "कृपया स्थान चुनें कि ख़तरा कहाँ है।",
+    errNoInput: "कृपया माइक दबाकर बोलें, विवरण लिखें, या फ़ोटो लगाएं।",
     errPhotoSize: "फ़ोटो का आकार बहुत बड़ा है। कृपया छोटी फ़ोटो चुनें।",
-    errVoiceNotSupported: "इस ब्राउज़र में सीधे टाइपिंग उपलब्ध नहीं है। आप नीचे वॉयस नोट रिकॉर्ड कर सकते हैं।",
     errMicPermission: "आवाज़ रिकॉर्ड करने के लिए माइक की अनुमति (Permission) दें।",
 
-    dangerLevelTitle: "ख़तरे का स्तर (Danger Level)",
+    dangerLevelTitle: "ख़तरे का स्तर (AI द्वारा आंका गया)",
     suggestionsTitle: "सुरक्षा निर्देश एवं सुझाव (What to do)",
     reportedDetailsTitle: "दर्ज की गई समस्या",
     actionTakenTitle: "सुधार व कार्रवाई की स्थिति",
     assignedTo: "किसे सौंपा गया",
     dueDate: "सुधार की अंतिम तिथि",
-    checkingStatus: "सुरक्षा टीम जांच कर रही है...",
-    checkingStatusSub: "आपकी रिपोर्ट पर जल्द ही कार्रवाई शुरू होगी।",
     listenAdviceBtn: "🔊 बोलकर सुनाएं (आवाज़ में सुनें)",
     stopListenAdviceBtn: "⏹️ आवाज़ रोकें",
-    workerVoiceNoteTitle: "आपकी रिकॉर्ड की गई वॉयस रिकॉर्डिंग",
 
     locations: [
       "बॉयलर रूम A (Boiler Room A)",
@@ -356,7 +295,7 @@ export const translations: Record<Language, Translations> = {
       "मेंटेनेंस वर्कशॉप (Workshop)",
       "छत / ऊंचाई कार्य क्षेत्र (Roof / Height)",
       "वाटर ट्रीटमेंट प्लांट (Water Treatment)",
-      "वेयरहाउस / गोदाम (Warehouse)",
+      "वेयरहाउस / मुख्य गलियारा (Warehouse)",
       "अन्य स्थान (Other Location)",
     ],
   },

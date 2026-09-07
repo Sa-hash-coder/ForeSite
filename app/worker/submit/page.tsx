@@ -4,18 +4,14 @@ import { useState, useRef, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { submitReportApi } from "@/app/lib/api";
 import { useLanguage } from "@/app/lib/LanguageContext";
-import VoiceRecorder from "@/app/components/VoiceRecorder";
-import VoiceDictateButton from "@/app/components/VoiceDictateButton";
+import HoldToSpeakMic from "@/app/components/HoldToSpeakMic";
 
 export default function SubmitReportPage() {
   const router = useRouter();
   const { lang, t } = useLanguage();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [category, setCategory] = useState("");
-  const [severity, setSeverity] = useState("");
+  const [description, setDescription] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [audioBase64, setAudioBase64] = useState<string | null>(null);
@@ -23,18 +19,6 @@ export default function SubmitReportPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const categories = Object.entries(t.categories).map(([value, label]) => ({
-    value,
-    label,
-  }));
-
-  const severities = [
-    { value: "low", ...t.severities.low, color: "#16a34a" },
-    { value: "medium", ...t.severities.medium, color: "#d97706" },
-    { value: "high", ...t.severities.high, color: "#ea580c" },
-    { value: "critical", ...t.severities.critical, color: "#dc2626" },
-  ];
 
   function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -56,38 +40,34 @@ export default function SubmitReportPage() {
     e.preventDefault();
     setError("");
 
-    if (!title.trim() || title.trim().length < 4) {
-      setError(t.errTitle);
-      return;
-    }
-    // Allow submission if description has text OR audioBase64 voice note is attached
-    if ((!description.trim() || description.trim().length < 5) && !audioBase64) {
-      setError(t.errDesc);
-      return;
-    }
     if (!location) {
       setError(t.errLocation);
       return;
     }
-    if (!category) {
-      setError(t.errCategory);
-      return;
-    }
-    if (!severity) {
-      setError(t.errSeverity);
+
+    // Check that at least one of Voice Note, Text, or Photo is provided
+    if (!audioBase64 && !description.trim() && !imageBase64) {
+      setError(t.errNoInput);
       return;
     }
 
     setSubmitting(true);
-    const finalDescription = description.trim() || (lang === "hi" ? "वॉयस नोट संलग्न है।" : "Voice note attached.");
+
+    const generatedTitle = description.trim()
+      ? description.trim().slice(0, 60)
+      : (lang === "hi" ? `ख़तरे की रिपोर्ट - ${location}` : `Hazard Report - ${location}`);
+
+    const finalDescription = description.trim()
+      ? description.trim()
+      : (lang === "hi" ? "श्रमिक द्वारा वॉयस नोट / फ़ोटो संलग्न की गई है।" : "Voice note or hazard photo attached by worker.");
 
     try {
       await submitReportApi({
-        title: title.trim(),
+        title: generatedTitle,
         description: finalDescription,
         location,
-        category,
-        severity,
+        category: "unsafe_condition", // Defaulted for API, AI computes exact hazard
+        severity: "high",             // Defaulted for API, AI calculates exact risk score
         ...(imageBase64 ? { imageUrl: imageBase64 } : {}),
         ...(audioBase64 ? { audioUrl: audioBase64 } : {}),
       });
@@ -114,11 +94,8 @@ export default function SubmitReportPage() {
           </button>
           <button
             onClick={() => {
-              setTitle("");
               setDescription("");
               setLocation("");
-              setCategory("");
-              setSeverity("");
               setImageBase64(null);
               setImagePreview(null);
               setAudioBase64(null);
@@ -141,36 +118,7 @@ export default function SubmitReportPage() {
       {error && <div style={s.errorBox}>⚠️ {error}</div>}
 
       <form onSubmit={handleSubmit} style={s.form}>
-        {/* 1. Title with Voice Dictation */}
-        <div style={s.field}>
-          <div style={s.labelRow}>
-            <label style={s.label} htmlFor="title">{t.whatHappened}</label>
-            <VoiceDictateButton
-              onTranscript={(spokenText) => {
-                setTitle((prev) => (prev ? `${prev} ${spokenText}` : spokenText));
-              }}
-            />
-          </div>
-          <p style={s.hint}>{t.whatHappenedHint}</p>
-          <input
-            id="title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t.whatHappenedPlaceholder}
-            style={s.input}
-            maxLength={150}
-          />
-        </div>
-
-        {/* 2. Voice Note Recording (Special accessible option for workers) */}
-        <VoiceRecorder
-          onAudioChange={(base64) => {
-            setAudioBase64(base64);
-          }}
-        />
-
-        {/* 3. Location */}
+        {/* Step 1: Location Selection */}
         <div style={s.field}>
           <label style={s.label} htmlFor="location">{t.locationLabel}</label>
           <select
@@ -186,77 +134,44 @@ export default function SubmitReportPage() {
           </select>
         </div>
 
-        {/* 4. Description with Voice Dictation */}
+        {/* Step 2: MAIN VOICE COMPONENT (Hold to speak round mic) */}
+        <HoldToSpeakMic
+          onAudioChange={(base64) => {
+            setAudioBase64(base64);
+          }}
+          onTranscript={(spokenText) => {
+            setDescription(spokenText);
+          }}
+        />
+
+        {/* Step 3: Optional Text Box (Auto-filled by voice, editable if desired) */}
         <div style={s.field}>
           <div style={s.labelRow}>
-            <label style={s.label} htmlFor="description">{t.describeIssue}</label>
-            <VoiceDictateButton
-              onTranscript={(spokenText) => {
-                setDescription((prev) => (prev ? `${prev} ${spokenText}` : spokenText));
-              }}
-            />
+            <label style={s.label} htmlFor="description">{t.optionalTextLabel}</label>
+            <span style={s.optionalTag}>
+              {lang === "hi" ? "ऐच्छिक" : "Optional"}
+            </span>
           </div>
-          <p style={s.hint}>{t.describeHint}</p>
+          <p style={s.hint}>{t.optionalTextHint}</p>
           <textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={t.describePlaceholder}
+            placeholder={t.optionalTextPlaceholder}
             rows={3}
             style={s.textarea}
             maxLength={1000}
           />
         </div>
 
-        {/* 5. Category */}
+        {/* Step 4: Photo Attachment */}
         <div style={s.field}>
-          <label style={s.label}>{t.issueTypeLabel}</label>
-          <div style={s.chipGrid}>
-            {categories.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                onClick={() => setCategory(c.value)}
-                style={{
-                  ...s.chip,
-                  ...(category === c.value ? s.chipSelected : {}),
-                }}
-              >
-                {c.label}
-              </button>
-            ))}
+          <div style={s.labelRow}>
+            <label style={s.label}>{t.photoLabel}</label>
+            <span style={s.optionalTag}>
+              {lang === "hi" ? "ऐच्छिक" : "Optional"}
+            </span>
           </div>
-        </div>
-
-        {/* 6. Severity */}
-        <div style={s.field}>
-          <label style={s.label}>{t.severityLabel}</label>
-          <div style={s.severityGrid}>
-            {severities.map((sv) => (
-              <button
-                key={sv.value}
-                type="button"
-                onClick={() => setSeverity(sv.value)}
-                style={{
-                  ...s.severityOption,
-                  border: `2px solid ${severity === sv.value ? sv.color : "#e5e7eb"}`,
-                  backgroundColor: severity === sv.value ? `${sv.color}12` : "#fff",
-                }}
-              >
-                <span style={{ fontWeight: 800, color: sv.color, fontSize: "14px" }}>
-                  {sv.title}
-                </span>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px", lineHeight: 1.3 }}>
-                  {sv.desc}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 7. Photo */}
-        <div style={s.field}>
-          <label style={s.label}>{t.photoLabel}</label>
           <p style={s.hint}>{t.photoHint}</p>
           <input
             ref={fileRef}
@@ -293,7 +208,7 @@ export default function SubmitReportPage() {
           )}
         </div>
 
-        {/* Submit */}
+        {/* Big Submit Button */}
         <button
           type="submit"
           disabled={submitting}
@@ -311,111 +226,71 @@ export default function SubmitReportPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  pageTitle: { fontSize: "20px", fontWeight: 800, color: "var(--text)", marginBottom: "4px" },
-  pageSubtitle: { fontSize: "14px", color: "var(--text-muted)", marginBottom: "16px" },
-  form: { display: "flex", flexDirection: "column", gap: "14px" },
+  pageTitle: { fontSize: "22px", fontWeight: 800, color: "var(--text)", marginBottom: "4px" },
+  pageSubtitle: { fontSize: "14px", color: "var(--text-muted)", marginBottom: "18px", lineHeight: 1.4 },
+  form: { display: "flex", flexDirection: "column", gap: "16px" },
   field: {
     display: "flex",
     flexDirection: "column",
     gap: "4px",
     backgroundColor: "#fff",
     border: "1px solid var(--border)",
-    borderRadius: "8px",
-    padding: "14px 16px",
+    borderRadius: "10px",
+    padding: "16px",
     boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
   },
   labelRow: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    flexWrap: "wrap",
-    gap: "6px",
   },
-  label: { fontSize: "15px", fontWeight: 700, color: "var(--text)" },
-  hint: { fontSize: "13px", color: "var(--text-muted)" },
-  input: {
+  label: { fontSize: "15px", fontWeight: 800, color: "var(--text)" },
+  optionalTag: {
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "#6b7280",
+    backgroundColor: "#f3f4f6",
+    padding: "2px 8px",
+    borderRadius: "10px",
+  },
+  hint: { fontSize: "13px", color: "var(--text-muted)", marginTop: "2px" },
+  select: {
     border: "1.5px solid var(--border)",
-    borderRadius: "6px",
-    padding: "10px 12px",
+    borderRadius: "8px",
+    padding: "12px 14px",
     fontSize: "15px",
     color: "var(--text)",
     backgroundColor: "#fff",
-    marginTop: "6px",
+    marginTop: "8px",
     outline: "none",
     width: "100%",
+    cursor: "pointer",
   },
   textarea: {
     border: "1.5px solid var(--border)",
-    borderRadius: "6px",
-    padding: "10px 12px",
+    borderRadius: "8px",
+    padding: "12px 14px",
     fontSize: "15px",
     color: "var(--text)",
     backgroundColor: "#fff",
-    marginTop: "6px",
+    marginTop: "8px",
     outline: "none",
     resize: "vertical",
     width: "100%",
     fontFamily: "inherit",
-  },
-  select: {
-    border: "1.5px solid var(--border)",
-    borderRadius: "6px",
-    padding: "10px 12px",
-    fontSize: "15px",
-    color: "var(--text)",
-    backgroundColor: "#fff",
-    marginTop: "6px",
-    outline: "none",
-    width: "100%",
-  },
-  chipGrid: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "8px",
-    marginTop: "8px",
-  },
-  chip: {
-    border: "1.5px solid var(--border)",
-    borderRadius: "20px",
-    padding: "6px 14px",
-    fontSize: "13px",
-    fontWeight: 500,
-    cursor: "pointer",
-    backgroundColor: "#fff",
-    color: "var(--text)",
-  },
-  chipSelected: {
-    backgroundColor: "#eff6ff",
-    borderColor: "#1d4ed8",
-    color: "#1d4ed8",
-    fontWeight: 700,
-  },
-  severityGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "8px",
-    marginTop: "8px",
-  },
-  severityOption: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    padding: "10px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    textAlign: "left",
+    lineHeight: 1.5,
   },
   photoBtn: {
-    backgroundColor: "#fafaf9",
-    border: "2px dashed var(--border)",
-    borderRadius: "6px",
+    backgroundColor: "#f8fafc",
+    border: "2px dashed #cbd5e1",
+    borderRadius: "8px",
     padding: "16px",
     fontSize: "15px",
-    fontWeight: 600,
-    color: "var(--text-muted)",
+    fontWeight: 700,
+    color: "#475569",
     cursor: "pointer",
     width: "100%",
-    marginTop: "6px",
+    marginTop: "8px",
   },
   imagePreviewWrap: {
     display: "flex",
@@ -425,61 +300,62 @@ const s: Record<string, React.CSSProperties> = {
   },
   imagePreview: {
     width: "100%",
-    maxHeight: "200px",
+    maxHeight: "220px",
     objectFit: "cover",
-    borderRadius: "6px",
+    borderRadius: "8px",
     border: "1px solid var(--border)",
   },
   removeImg: {
     backgroundColor: "transparent",
     border: "none",
-    color: "var(--danger)",
+    color: "#dc2626",
     fontSize: "13px",
+    fontWeight: 700,
     cursor: "pointer",
-    padding: "0",
+    padding: "2px 0",
     textAlign: "left",
-    fontWeight: 600,
   },
   submitBtn: {
     backgroundColor: "#1d4ed8",
     color: "#fff",
     border: "none",
-    borderRadius: "8px",
-    padding: "14px",
-    fontSize: "16px",
+    borderRadius: "10px",
+    padding: "16px",
+    fontSize: "17px",
     fontWeight: 800,
     width: "100%",
-    marginTop: "4px",
-    boxShadow: "0 2px 4px rgba(29, 78, 216, 0.2)",
+    marginTop: "6px",
+    boxShadow: "0 3px 8px rgba(29, 78, 216, 0.25)",
+    cursor: "pointer",
   },
   errorBox: {
-    backgroundColor: "var(--danger-light)",
+    backgroundColor: "#fef2f2",
     border: "1px solid #fca5a5",
-    color: "var(--danger)",
+    color: "#dc2626",
     padding: "12px 16px",
-    borderRadius: "6px",
+    borderRadius: "8px",
     fontSize: "14px",
-    fontWeight: 600,
+    fontWeight: 700,
     marginBottom: "4px",
   },
   successCard: {
     backgroundColor: "#fff",
     border: "1px solid var(--border)",
-    borderRadius: "10px",
+    borderRadius: "12px",
     padding: "36px 20px",
     textAlign: "center",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
   },
-  successIcon: { fontSize: "44px", marginBottom: "12px" },
-  successTitle: { fontSize: "20px", fontWeight: 800, color: "var(--text)", marginBottom: "10px" },
-  successMsg: { fontSize: "14px", color: "var(--text-muted)", marginBottom: "20px", lineHeight: 1.6 },
+  successIcon: { fontSize: "48px", marginBottom: "12px" },
+  successTitle: { fontSize: "22px", fontWeight: 800, color: "var(--text)", marginBottom: "10px" },
+  successMsg: { fontSize: "15px", color: "var(--text-muted)", marginBottom: "22px", lineHeight: 1.6 },
   primaryBtn: {
     backgroundColor: "#1d4ed8",
     color: "#fff",
     border: "none",
-    borderRadius: "6px",
-    padding: "12px 20px",
-    fontSize: "14px",
+    borderRadius: "8px",
+    padding: "12px 24px",
+    fontSize: "15px",
     fontWeight: 700,
     cursor: "pointer",
   },
@@ -487,9 +363,9 @@ const s: Record<string, React.CSSProperties> = {
     backgroundColor: "#fff",
     color: "#1d4ed8",
     border: "1.5px solid #1d4ed8",
-    borderRadius: "6px",
-    padding: "12px 20px",
-    fontSize: "14px",
+    borderRadius: "8px",
+    padding: "12px 24px",
+    fontSize: "15px",
     fontWeight: 700,
     cursor: "pointer",
   },
