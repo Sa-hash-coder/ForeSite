@@ -1,34 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { getStoredUser, logout } from "@/app/lib/auth";
-import type { User } from "@/app/lib/api";
+import { MOCK_USER } from "@/app/lib/mockData";
 
 export default function WorkerLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const u = getStoredUser();
-    if (!u) {
-      router.replace("/worker/login");
-      return;
-    }
-    if (u.role !== "worker") {
-      router.replace("/worker/login");
-      return;
-    }
-    setUser(u);
-  }, [router]);
-
-  function handleLogout() {
-    logout();
-    router.push("/worker/login");
-  }
+  const user = MOCK_USER;
 
   const navLinks = [
     { href: "/worker",          label: "🏠 Home"        },
@@ -61,15 +41,9 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
           ))}
         </div>
 
-        {/* User + logout */}
+        {/* User */}
         <div style={navStyle.right}>
-          {user && (
-            <span style={navStyle.userName}>{user.name.split(" ")[0]}</span>
-          )}
-          <button onClick={handleLogout} style={navStyle.logoutBtn}>
-            Sign Out
-          </button>
-          {/* Mobile hamburger */}
+          <span style={navStyle.userName}>{user.name.split(" ")[0]}</span>
           <button
             style={navStyle.hamburger}
             onClick={() => setMenuOpen((o) => !o)}
@@ -93,9 +67,6 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
               {l.label}
             </Link>
           ))}
-          <button onClick={handleLogout} style={navStyle.mobileLinkBtn}>
-            🚪 Sign Out
-          </button>
         </div>
       )}
 
@@ -104,7 +75,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
         {children}
       </main>
 
-      {/* Bottom footer */}
+      {/* Footer */}
       <footer style={{ textAlign: "center", padding: "16px", fontSize: "12px", color: "var(--text-light)", borderTop: "1px solid var(--border)", backgroundColor: "#fff" }}>
         ForeSite Safety Platform &nbsp;•&nbsp; Report issues to your Safety Officer
       </footer>
@@ -164,15 +135,6 @@ const navStyle: Record<string, React.CSSProperties> = {
     color: "#bfdbfe",
     fontSize: "14px",
   },
-  logoutBtn: {
-    backgroundColor: "transparent",
-    border: "1px solid rgba(255,255,255,0.4)",
-    color: "#fff",
-    padding: "5px 12px",
-    borderRadius: "4px",
-    fontSize: "13px",
-    cursor: "pointer",
-  },
   hamburger: {
     display: "none",
     backgroundColor: "transparent",
@@ -195,15 +157,5 @@ const navStyle: Record<string, React.CSSProperties> = {
     fontSize: "15px",
     padding: "12px 24px",
     display: "block",
-  },
-  mobileLinkBtn: {
-    backgroundColor: "transparent",
-    border: "none",
-    color: "#bfdbfe",
-    fontSize: "15px",
-    padding: "12px 24px",
-    textAlign: "left",
-    cursor: "pointer",
-    width: "100%",
   },
 };

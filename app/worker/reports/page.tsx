@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { getMyReportsApi } from "@/app/lib/api";
-import type { ReportSummary, Pagination } from "@/app/lib/api";
+import { MOCK_REPORTS } from "@/app/lib/mockData";
+import type { ReportSummary } from "@/app/lib/api";
 import StatusBadge from "@/app/components/StatusBadge";
 import RiskBadge from "@/app/components/RiskBadge";
-import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 const STATUS_FILTERS = [
   { value: "", label: "All" },
@@ -18,24 +17,8 @@ const STATUS_FILTERS = [
 ];
 
 export default function MyReportsPage() {
-  const [reports, setReports] = useState<ReportSummary[]>([]);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
-  const [page, setPage] = useState(1);
+  const [reports] = useState<ReportSummary[]>(MOCK_REPORTS);
   const [filter, setFilter] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    setLoading(true);
-    setError("");
-    getMyReportsApi(page)
-      .then((res) => {
-        setReports(res.data);
-        setPagination(res.pagination);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [page]);
 
   const filtered = filter
     ? reports.filter((r) => r.status === filter)
@@ -64,27 +47,16 @@ export default function MyReportsPage() {
         ))}
       </div>
 
-      {loading && <LoadingSpinner text="Loading reports..." />}
-
-      {error && (
-        <div style={s.errorBox}>⚠ {error}</div>
-      )}
-
-      {!loading && !error && filtered.length === 0 && (
+      {filtered.length === 0 && (
         <div style={s.emptyBox}>
           <p style={{ fontSize: "32px", marginBottom: "8px" }}>📭</p>
           <p style={{ fontWeight: 600, color: "var(--text)" }}>
-            {filter ? "No reports with this status" : "No reports yet"}
+            No reports with this status
           </p>
-          {!filter && (
-            <Link href="/worker/submit" style={s.emptyLink}>
-              Submit your first report →
-            </Link>
-          )}
         </div>
       )}
 
-      {!loading && !error && filtered.map((r) => (
+      {filtered.map((r) => (
         <Link href={`/worker/reports/${r._id}`} key={r._id} style={s.card}>
           <div style={s.cardTop}>
             <span style={s.cardTitle}>{r.title}</span>
@@ -106,29 +78,6 @@ export default function MyReportsPage() {
           )}
         </Link>
       ))}
-
-      {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
-        <div style={s.pagination}>
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            style={{ ...s.pageBtn, opacity: page === 1 ? 0.4 : 1 }}
-          >
-            ← Previous
-          </button>
-          <span style={s.pageInfo}>
-            Page {pagination.page} of {pagination.totalPages}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-            disabled={page === pagination.totalPages}
-            style={{ ...s.pageBtn, opacity: page === pagination.totalPages ? 0.4 : 1 }}
-          >
-            Next →
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -230,42 +179,5 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: "8px",
     padding: "40px 24px",
     textAlign: "center",
-  },
-  emptyLink: {
-    display: "inline-block",
-    marginTop: "12px",
-    color: "var(--primary)",
-    fontSize: "14px",
-    fontWeight: 600,
-    textDecoration: "none",
-  },
-  errorBox: {
-    backgroundColor: "var(--danger-light)",
-    border: "1px solid #fca5a5",
-    color: "var(--danger)",
-    padding: "12px 16px",
-    borderRadius: "6px",
-    fontSize: "14px",
-    marginBottom: "12px",
-  },
-  pagination: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: "16px",
-    marginTop: "20px",
-  },
-  pageBtn: {
-    border: "1px solid var(--border)",
-    borderRadius: "6px",
-    padding: "8px 16px",
-    fontSize: "14px",
-    cursor: "pointer",
-    backgroundColor: "#fff",
-    color: "var(--text)",
-  },
-  pageInfo: {
-    fontSize: "14px",
-    color: "var(--text-muted)",
   },
 };

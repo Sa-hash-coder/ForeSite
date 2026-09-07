@@ -1,54 +1,32 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { use } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { getReportByIdApi } from "@/app/lib/api";
-import type { ReportDetail } from "@/app/lib/api";
+import { MOCK_REPORT_DETAIL } from "@/app/lib/mockData";
 import StatusBadge from "@/app/components/StatusBadge";
 import RiskBadge from "@/app/components/RiskBadge";
-import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 const TASK_STATUS_LABELS: Record<string, string> = {
-  assigned:    "Assigned",
+  assigned: "Assigned",
   in_progress: "In Progress",
-  resolved:    "Resolved",
-  verified:    "Verified ✓",
+  resolved: "Resolved",
+  verified: "Verified ✓",
 };
 
 export default function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
-  const [report, setReport] = useState<ReportDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!id) return;
-    getReportByIdApi(id)
-      .then((res) => setReport(res.data))
-      .catch((err) => {
-        if (err.message?.includes("403") || err.message?.includes("401")) {
-          router.replace("/worker/login");
-        } else {
-          setError(err.message || "Could not load report.");
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [id, router]);
+  // Get from mock data or fallback to first report
+  const report = MOCK_REPORT_DETAIL[id] || Object.values(MOCK_REPORT_DETAIL)[0];
 
-  if (loading) return <LoadingSpinner text="Loading report..." />;
-
-  if (error) {
+  if (!report) {
     return (
       <div style={s.errorBox}>
-        <p>⚠ {error}</p>
+        <p>⚠ Report not found</p>
         <Link href="/worker/reports" style={s.backLink}>← Back to My Reports</Link>
       </div>
     );
   }
-
-  if (!report) return null;
 
   const risk = report.riskAssessment;
 
@@ -137,7 +115,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
           <div>
             <p style={{ fontWeight: 600, color: "var(--text)" }}>Safety check in progress</p>
             <p style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "2px" }}>
-              The AI is reviewing your report. This usually takes less than a minute.
+              The report is being reviewed.
             </p>
           </div>
         </div>
