@@ -70,6 +70,19 @@ export interface Translations {
   viewMyReports: string;
   submitAnother: string;
 
+  // Voice features in form
+  voiceTypingTitle: string;
+  voiceTypingStart: string;
+  voiceTypingListening: string;
+  voiceNoteLabel: string;
+  voiceNoteHint: string;
+  voiceNoteRecord: string;
+  voiceNoteRecording: string;
+  voiceNoteStop: string;
+  voiceNoteRecorded: string;
+  voiceNotePlay: string;
+  voiceNoteDelete: string;
+
   // Validation errors
   errTitle: string;
   errDesc: string;
@@ -77,8 +90,10 @@ export interface Translations {
   errCategory: string;
   errSeverity: string;
   errPhotoSize: string;
+  errVoiceNotSupported: string;
+  errMicPermission: string;
 
-  // Report Details
+  // Report Details & Audio Playback
   dangerLevelTitle: string;
   suggestionsTitle: string;
   reportedDetailsTitle: string;
@@ -87,6 +102,9 @@ export interface Translations {
   dueDate: string;
   checkingStatus: string;
   checkingStatusSub: string;
+  listenAdviceBtn: string;
+  stopListenAdviceBtn: string;
+  workerVoiceNoteTitle: string;
 
   // Locations
   locations: string[];
@@ -170,12 +188,26 @@ export const translations: Record<Language, Translations> = {
     viewMyReports: "View My Reports",
     submitAnother: "Report Another Issue",
 
+    voiceTypingTitle: "Speak to Type",
+    voiceTypingStart: "🎙️ Speak to Type",
+    voiceTypingListening: "🔴 Listening... Speak now",
+    voiceNoteLabel: "Record a Voice Note (Optional)",
+    voiceNoteHint: "Speak into your phone to explain what happened",
+    voiceNoteRecord: "🎙️ Start Voice Recording",
+    voiceNoteRecording: "🔴 Recording... Speak now (Tap to Stop)",
+    voiceNoteStop: "⏹️ Stop Recording",
+    voiceNoteRecorded: "Voice note recorded",
+    voiceNotePlay: "Play Audio",
+    voiceNoteDelete: "✕ Delete Voice Note",
+
     errTitle: "Please enter a title (at least 5 letters).",
-    errDesc: "Please enter a short description (at least 15 letters).",
+    errDesc: "Please enter a short description or record a voice note.",
     errLocation: "Please select a location.",
     errCategory: "Please choose the type of danger.",
     errSeverity: "Please select danger level.",
     errPhotoSize: "Photo is too large. Please select a smaller photo.",
+    errVoiceNotSupported: "Voice recognition is not supported on this browser. You can still record audio below.",
+    errMicPermission: "Microphone permission is required to record voice.",
 
     dangerLevelTitle: "Danger Level",
     suggestionsTitle: "Safety Advice & Next Steps",
@@ -185,6 +217,9 @@ export const translations: Record<Language, Translations> = {
     dueDate: "Expected Fix Date",
     checkingStatus: "Safety team is reviewing...",
     checkingStatusSub: "The report is being processed. Action will be assigned shortly.",
+    listenAdviceBtn: "🔊 Read Aloud (Listen)",
+    stopListenAdviceBtn: "⏹️ Stop Voice",
+    workerVoiceNoteTitle: "Your Recorded Voice Message",
 
     locations: [
       "Boiler Room A",
@@ -242,13 +277,13 @@ export const translations: Record<Language, Translations> = {
     noReportsSub: "जब आप कोई समस्या दर्ज करेंगे, वह यहाँ दिखाई देगी।",
 
     submitTitle: "नया ख़तरा दर्ज करें",
-    submitSubtitle: "सरल जानकारी भरें। सुरक्षा टीम को तुरंत संदेश भेजा जाएगा।",
+    submitSubtitle: "सरल जानकारी भरें या बोलकर बताएं। सुरक्षा टीम को तुरंत संदेश भेजा जाएगा।",
     whatHappened: "क्या समस्या है? *",
     whatHappenedHint: "संक्षिप्त नाम (जैसे: पानी के पास खुला तार)",
     whatHappenedPlaceholder: "उदा. पानी के पास बिजली का खुला तार",
     describeIssue: "कहाँ और क्या ख़तरा है? *",
     describeHint: "क्या ख़तरा है? क्या किसी को चोट लग सकती है?",
-    describePlaceholder: "समस्या का थोड़ा विवरण लिखें...",
+    describePlaceholder: "समस्या का विवरण लिखें या नीचे बोलकर बताएं...",
     locationLabel: "स्थान कहाँ है? *",
     selectLocation: "-- स्थान चुनें --",
     issueTypeLabel: "ख़तरे का प्रकार *",
@@ -278,12 +313,26 @@ export const translations: Record<Language, Translations> = {
     viewMyReports: "मेरी रिपोर्ट्स देखें",
     submitAnother: "एक और रिपोर्ट दर्ज करें",
 
-    errTitle: "कृपया समस्या का नाम लिखें (कम से कम 5 अक्षर)।",
-    errDesc: "कृपया विवरण लिखें (कम से कम 15 अक्षर)।",
+    voiceTypingTitle: "बोलकर लिखें (Voice Typing)",
+    voiceTypingStart: "🎙️ बोलकर लिखें (Voice Typing)",
+    voiceTypingListening: "🔴 सुन रहा हूँ... बोलिए",
+    voiceNoteLabel: "आवाज़ में रिकॉर्ड करें (वॉयस नोट)",
+    voiceNoteHint: "अगर लिखना नहीं चाहते, तो अपनी आवाज़ में बोलकर रिकॉर्ड करें",
+    voiceNoteRecord: "🎙️ आवाज़ में रिकॉर्ड करें (वॉयस नोट)",
+    voiceNoteRecording: "🔴 रिकॉर्डिंग चालू है... बोलें (रोकने के लिए दबाएं)",
+    voiceNoteStop: "⏹️ रिकॉर्डिंग रोकें",
+    voiceNoteRecorded: "वॉयस नोट रिकॉर्ड हो गया",
+    voiceNotePlay: "आवाज़ सुनें",
+    voiceNoteDelete: "✕ रिकॉर्डिंग हटाएं",
+
+    errTitle: "कृपया समस्या का नाम लिखें या बोलकर बताएं।",
+    errDesc: "कृपया विवरण लिखें या वॉयस नोट रिकॉर्ड करें।",
     errLocation: "कृपया स्थान चुनें।",
     errCategory: "कृपया ख़तरे का प्रकार चुनें।",
     errSeverity: "कृपया ख़तरे का स्तर चुनें।",
     errPhotoSize: "फ़ोटो का आकार बहुत बड़ा है। कृपया छोटी फ़ोटो चुनें।",
+    errVoiceNotSupported: "इस ब्राउज़र में सीधे टाइपिंग उपलब्ध नहीं है। आप नीचे वॉयस नोट रिकॉर्ड कर सकते हैं।",
+    errMicPermission: "आवाज़ रिकॉर्ड करने के लिए माइक की अनुमति (Permission) दें।",
 
     dangerLevelTitle: "ख़तरे का स्तर (Danger Level)",
     suggestionsTitle: "सुरक्षा निर्देश एवं सुझाव (What to do)",
@@ -293,6 +342,9 @@ export const translations: Record<Language, Translations> = {
     dueDate: "सुधार की अंतिम तिथि",
     checkingStatus: "सुरक्षा टीम जांच कर रही है...",
     checkingStatusSub: "आपकी रिपोर्ट पर जल्द ही कार्रवाई शुरू होगी।",
+    listenAdviceBtn: "🔊 बोलकर सुनाएं (आवाज़ में सुनें)",
+    stopListenAdviceBtn: "⏹️ आवाज़ रोकें",
+    workerVoiceNoteTitle: "आपकी रिकॉर्ड की गई वॉयस रिकॉर्डिंग",
 
     locations: [
       "बॉयलर रूम A (Boiler Room A)",

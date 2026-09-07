@@ -4,10 +4,12 @@ import { useState, useRef, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { submitReportApi } from "@/app/lib/api";
 import { useLanguage } from "@/app/lib/LanguageContext";
+import VoiceRecorder from "@/app/components/VoiceRecorder";
+import VoiceDictateButton from "@/app/components/VoiceDictateButton";
 
 export default function SubmitReportPage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -16,6 +18,7 @@ export default function SubmitReportPage() {
   const [severity, setSeverity] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [audioBase64, setAudioBase64] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -53,11 +56,12 @@ export default function SubmitReportPage() {
     e.preventDefault();
     setError("");
 
-    if (!title.trim() || title.trim().length < 5) {
+    if (!title.trim() || title.trim().length < 4) {
       setError(t.errTitle);
       return;
     }
-    if (!description.trim() || description.trim().length < 10) {
+    // Allow submission if description has text OR audioBase64 voice note is attached
+    if ((!description.trim() || description.trim().length < 5) && !audioBase64) {
       setError(t.errDesc);
       return;
     }
@@ -75,14 +79,17 @@ export default function SubmitReportPage() {
     }
 
     setSubmitting(true);
+    const finalDescription = description.trim() || (lang === "hi" ? "वॉयस नोट संलग्न है।" : "Voice note attached.");
+
     try {
       await submitReportApi({
         title: title.trim(),
-        description: description.trim(),
+        description: finalDescription,
         location,
         category,
         severity,
         ...(imageBase64 ? { imageUrl: imageBase64 } : {}),
+        ...(audioBase64 ? { audioUrl: audioBase64 } : {}),
       });
       setSuccess(true);
     } catch {
@@ -114,6 +121,7 @@ export default function SubmitReportPage() {
               setSeverity("");
               setImageBase64(null);
               setImagePreview(null);
+              setAudioBase64(null);
               setSuccess(false);
             }}
             style={s.outlineBtn}
@@ -133,9 +141,16 @@ export default function SubmitReportPage() {
       {error && <div style={s.errorBox}>⚠️ {error}</div>}
 
       <form onSubmit={handleSubmit} style={s.form}>
-        {/* Title */}
+        {/* 1. Title with Voice Dictation */}
         <div style={s.field}>
-          <label style={s.label} htmlFor="title">{t.whatHappened}</label>
+          <div style={s.labelRow}>
+            <label style={s.label} htmlFor="title">{t.whatHappened}</label>
+            <VoiceDictateButton
+              onTranscript={(spokenText) => {
+                setTitle((prev) => (prev ? `${prev} ${spokenText}` : spokenText));
+              }}
+            />
+          </div>
           <p style={s.hint}>{t.whatHappenedHint}</p>
           <input
             id="title"
@@ -148,7 +163,14 @@ export default function SubmitReportPage() {
           />
         </div>
 
-        {/* Location */}
+        {/* 2. Voice Note Recording (Special accessible option for workers) */}
+        <VoiceRecorder
+          onAudioChange={(base64) => {
+            setAudioBase64(base64);
+          }}
+        />
+
+        {/* 3. Location */}
         <div style={s.field}>
           <label style={s.label} htmlFor="location">{t.locationLabel}</label>
           <select
@@ -164,9 +186,16 @@ export default function SubmitReportPage() {
           </select>
         </div>
 
-        {/* Description */}
+        {/* 4. Description with Voice Dictation */}
         <div style={s.field}>
-          <label style={s.label} htmlFor="description">{t.describeIssue}</label>
+          <div style={s.labelRow}>
+            <label style={s.label} htmlFor="description">{t.describeIssue}</label>
+            <VoiceDictateButton
+              onTranscript={(spokenText) => {
+                setDescription((prev) => (prev ? `${prev} ${spokenText}` : spokenText));
+              }}
+            />
+          </div>
           <p style={s.hint}>{t.describeHint}</p>
           <textarea
             id="description"
@@ -179,7 +208,7 @@ export default function SubmitReportPage() {
           />
         </div>
 
-        {/* Category */}
+        {/* 5. Category */}
         <div style={s.field}>
           <label style={s.label}>{t.issueTypeLabel}</label>
           <div style={s.chipGrid}>
@@ -199,7 +228,7 @@ export default function SubmitReportPage() {
           </div>
         </div>
 
-        {/* Severity */}
+        {/* 6. Severity */}
         <div style={s.field}>
           <label style={s.label}>{t.severityLabel}</label>
           <div style={s.severityGrid}>
@@ -225,7 +254,7 @@ export default function SubmitReportPage() {
           </div>
         </div>
 
-        {/* Photo */}
+        {/* 7. Photo */}
         <div style={s.field}>
           <label style={s.label}>{t.photoLabel}</label>
           <p style={s.hint}>{t.photoHint}</p>
@@ -294,6 +323,13 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: "8px",
     padding: "14px 16px",
     boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+  },
+  labelRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "6px",
   },
   label: { fontSize: "15px", fontWeight: 700, color: "var(--text)" },
   hint: { fontSize: "13px", color: "var(--text-muted)" },

@@ -6,6 +6,7 @@ import { MOCK_REPORT_DETAIL } from "@/app/lib/mockData";
 import { useLanguage } from "@/app/lib/LanguageContext";
 import StatusBadge from "@/app/components/StatusBadge";
 import DangerBadge from "@/app/components/DangerBadge";
+import VoiceReadAloudButton from "@/app/components/VoiceReadAloudButton";
 
 export default function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -28,6 +29,10 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   const displayLocation = lang === "hi" && report.locationHi ? report.locationHi : report.location;
   const suggestions = lang === "hi" && report.suggestionsHi ? report.suggestionsHi : (report.suggestions || []);
   const risk = report.riskAssessment;
+
+  // Text that will be read aloud by the Voice button
+  const dangerLevelText = risk ? t.dangerLevels[risk.riskLevel as keyof typeof t.dangerLevels]?.label || "" : "";
+  const spokenContent = `${dangerLevelText}. ${t.suggestionsTitle}. ${suggestions.join(". ")}`;
 
   return (
     <div>
@@ -54,8 +59,12 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
       {/* 1. DANGER LEVEL CARD — High Contrast & Clear */}
       {risk && (
         <div style={s.dangerCard}>
-          <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "8px" }}>
-            {t.dangerLevelTitle}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-muted)" }}>
+              {t.dangerLevelTitle}
+            </span>
+            {/* Voice Read Aloud Button */}
+            <VoiceReadAloudButton textToRead={spokenContent} />
           </div>
           <DangerBadge level={risk.riskLevel} showSubtext={true} />
         </div>
