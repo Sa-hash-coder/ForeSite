@@ -17,6 +17,10 @@ CUSTOM_MODEL_PATH = os.getenv("CUSTOM_MODEL_PATH", str(BASE_DIR / "models" / "cu
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 EXTRACTION_PROVIDER = os.getenv("EXTRACTION_PROVIDER", "gemini")
 
+# Language translation settings
+# Set TRANSLATION_ENABLED=false to disable Hindi→English translation (e.g. in environments without Gemini)
+TRANSLATION_ENABLED = os.getenv("TRANSLATION_ENABLED", "true").lower() != "false"
+
 # Thresholds & Scoring
 SIMILARITY_THRESHOLD = 0.60
 MAX_PRECURSORS = 5

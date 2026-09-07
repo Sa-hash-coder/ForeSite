@@ -14,9 +14,10 @@ from pathlib import Path
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-from config import PORT, AI_API_KEY, LOG_LEVEL, MODEL_VERSION
+from config import PORT, AI_API_KEY, LOG_LEVEL, MODEL_VERSION, TRANSLATION_ENABLED
 from multimodal_extractor import extract_from_image, extract_from_audio, get_gemini_client
 from risk_scorer import analyze_report, load_ai_model
+from language_processor import translate_if_needed
 
 # Configure logging
 logging.basicConfig(
@@ -55,6 +56,8 @@ def health_check():
         "model_version": MODEL_VERSION,
         "model_source": source,
         "gemini_available": gemini_client is not None,
+        "translation_enabled": TRANSLATION_ENABLED,
+        "supported_languages": ["en", "hi", "hinglish"],
         "fallback_available": True
     }), 200
 
@@ -140,6 +143,16 @@ def analyze():
     logger.info(f"[{report_id}] Incoming analysis request — title: '{str(title)[:60]}', "
                 f"has_image: {bool(data.get('image_base64'))}, has_audio: {bool(data.get('audio_base64'))}")
 
+    # Stage 0: Language Detection & Translation
+    # Translates Hindi / Hinglish → English before the risk engine sees the text.
+    # English input fast-paths through with zero added latency.
+    title, description, detected_language, was_translated = translate_if_needed(
+        title=str(title).strip(),
+        description=str(description).strip(),
+    )
+    if was_translated:
+        logger.info(f"[{report_id}] Translated from '{detected_language}' → English before analysis.")
+
     # Stage 1: Multimodal extraction
     image_context = None
     audio_context = None
@@ -164,8 +177,8 @@ def analyze():
     try:
         result = analyze_report(
             report_id=str(report_id),
-            title=str(title).strip(),
-            description=str(description).strip(),
+            title=title,
+            description=description,
             location=data.get("location"),
             category=data.get("category"),
             severity=data.get("severity"),
@@ -173,6 +186,11 @@ def analyze():
             audio_context=audio_context,
             extraction_fallback=extraction_fallback
         )
+
+        # Attach language metadata so the frontend/backend can show "Translated from Hindi"
+        result["detected_language"] = detected_language
+        result["was_translated"] = was_translated
+
         return jsonify(result), 200
 
     except Exception as e:
