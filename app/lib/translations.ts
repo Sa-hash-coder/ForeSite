@@ -61,6 +61,11 @@ export interface Translations {
   voiceDelete: string;
   voiceAutoTranscribed: string;
 
+  speakingLanguage: string;
+  detectedHindi: string;
+  detectedEnglish: string;
+  convertedTextTitle: string;
+
   optionalTextLabel: string;
   optionalTextPlaceholder: string;
   optionalTextHint: string;
@@ -153,6 +158,11 @@ export const translations: Record<Language, Translations> = {
     voiceReRecord: "🔄 Re-record",
     voiceDelete: "✕ Delete Audio",
     voiceAutoTranscribed: "Transcribed from your voice:",
+
+    speakingLanguage: "Speaking in:",
+    detectedHindi: "🇮🇳 Spoken in Hindi (हिंदी)",
+    detectedEnglish: "🇬🇧 Spoken in English",
+    convertedTextTitle: "Converted Text from your Voice:",
 
     optionalTextLabel: "3. Extra written notes (Optional)",
     optionalTextPlaceholder: "Your speech appears here automatically. You can also type manually if you prefer...",
@@ -254,6 +264,11 @@ export const translations: Record<Language, Translations> = {
     voiceReRecord: "🔄 दोबारा बोलें",
     voiceDelete: "✕ रिकॉर्डिंग हटाएं",
     voiceAutoTranscribed: "आपकी आवाज़ से लिखा गया विवरण:",
+
+    speakingLanguage: "बोलने की भाषा:",
+    detectedHindi: "🇮🇳 हिंदी में बोला गया (Hindi)",
+    detectedEnglish: "🇬🇧 अंग्रेजी में बोला गया (English)",
+    convertedTextTitle: "आपकी आवाज़ से बना टेक्स्ट (Converted Text):",
 
     optionalTextLabel: "3. लिखकर विवरण दें (ऐच्छिक - जरूरी नहीं)",
     optionalTextPlaceholder: "जो आप बोलेंगे वह यहाँ अपने आप लिख जाएगा। चाहें तो खुद भी लिख सकते हैं...",

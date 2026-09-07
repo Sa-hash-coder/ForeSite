@@ -18,10 +18,13 @@ export default function HoldToSpeakMic({
   onTranscript,
 }: HoldToSpeakMicProps) {
   const { lang, t } = useLanguage();
+  const [speechLang, setSpeechLang] = useState<"hi" | "en">(lang === "hi" ? "hi" : "en");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [liveTranscript, setLiveTranscript] = useState("");
+  const [savedTranscript, setSavedTranscript] = useState("");
+  const [detectedLang, setDetectedLang] = useState<"hi" | "en" | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -30,6 +33,11 @@ export default function HoldToSpeakMic({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const isHeldRef = useRef(false);
+
+  // Sync speech recognition language with global app language when changed
+  useEffect(() => {
+    setSpeechLang(lang === "hi" ? "hi" : "en");
+  }, [lang]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -44,6 +52,12 @@ export default function HoldToSpeakMic({
       }
     };
   }, []);
+
+  // Helper to detect if transcribed string contains Hindi Devanagari script
+  function detectTextLanguage(text: string): "hi" | "en" {
+    const hasDevanagari = /[\u0900-\u097F]/.test(text);
+    return hasDevanagari ? "hi" : "en";
+  }
 
   async function startAll() {
     if (isHeldRef.current) return;
@@ -107,7 +121,7 @@ export default function HoldToSpeakMic({
           recognitionRef.current = recognition;
           recognition.continuous = true;
           recognition.interimResults = true;
-          recognition.lang = lang === "hi" ? "hi-IN" : "en-IN";
+          recognition.lang = speechLang === "hi" ? "hi-IN" : "en-IN";
 
           recognition.onresult = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
             let finalStr = "";
@@ -116,11 +130,16 @@ export default function HoldToSpeakMic({
             }
             const trimmed = finalStr.trim();
             setLiveTranscript(trimmed);
+            setSavedTranscript(trimmed);
+
+            const langType = detectTextLanguage(trimmed);
+            setDetectedLang(langType);
+
             onTranscript(trimmed);
           };
 
           recognition.onerror = () => {
-            // Silently continue audio recording even if speech recognition has error
+            // Silently continue audio recording
           };
 
           recognition.start();
@@ -158,13 +177,22 @@ export default function HoldToSpeakMic({
         // ignore
       }
     }
+
+    if (liveTranscript) {
+      setSavedTranscript(liveTranscript);
+      setDetectedLang(detectTextLanguage(liveTranscript));
+      onTranscript(liveTranscript);
+    }
   }
 
   function deleteRecording() {
     setAudioUrl(null);
     setRecordingSeconds(0);
     setLiveTranscript("");
+    setSavedTranscript("");
+    setDetectedLang(null);
     onAudioChange(null);
+    onTranscript("");
   }
 
   const formatTimer = (s: number) => {
@@ -176,88 +204,122 @@ export default function HoldToSpeakMic({
   return (
     <div style={s.card}>
       <div style={s.headerBox}>
-        <div style={{ fontWeight: 800, fontSize: "16px", color: "var(--text)" }}>
-          {t.voiceMainTitle}
-        </div>
-        <div style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "2px" }}>
-          {t.voiceMainSubtitle}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "8px" }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: "16px", color: "var(--text)" }}>
+              {t.voiceMainTitle}
+            </div>
+            <div style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "2px" }}>
+              {t.voiceMainSubtitle}
+            </div>
+          </div>
+
+          {/* Speech Language Selector Pill */}
+          <div style={s.langPillWrapper}>
+            <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>
+              {t.speakingLanguage}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSpeechLang(speechLang === "hi" ? "en" : "hi")}
+              style={s.langToggleBtn}
+              title="Toggle speech recognition language"
+            >
+              {speechLang === "hi" ? "🇮🇳 हिंदी (Hindi)" : "🇬🇧 English"}
+            </button>
+          </div>
         </div>
       </div>
 
       {micError && <div style={s.errorBox}>⚠️ {micError}</div>}
 
       {/* Main Mic Section */}
-      {!audioUrl ? (
-        <div style={s.micArea}>
-          {/* Round Hold-To-Speak Button */}
-          <div style={s.btnWrapper}>
-            <button
-              type="button"
-              onMouseDown={startAll}
-              onMouseUp={stopAll}
-              onMouseLeave={stopAll}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                startAll();
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                stopAll();
-              }}
-              onTouchCancel={(e) => {
-                e.preventDefault();
-                stopAll();
-              }}
-              style={{
-                ...s.roundBtn,
-                backgroundColor: isRecording ? "#dc2626" : "#1d4ed8",
-                boxShadow: isRecording
-                  ? "0 0 0 12px rgba(220, 38, 38, 0.25), 0 4px 14px rgba(220, 38, 38, 0.4)"
-                  : "0 0 0 6px rgba(29, 78, 216, 0.15), 0 4px 12px rgba(29, 78, 216, 0.3)",
-                transform: isRecording ? "scale(1.08)" : "scale(1)",
-              }}
-              aria-label={t.voiceHoldToSpeak}
-            >
-              <span style={{ fontSize: "36px", userSelect: "none" }}>
-                {isRecording ? "🔴" : "🎙️"}
+      <div style={s.micArea}>
+        {/* Round Hold-To-Speak Button */}
+        <div style={s.btnWrapper}>
+          <button
+            type="button"
+            onMouseDown={startAll}
+            onMouseUp={stopAll}
+            onMouseLeave={stopAll}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              startAll();
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              stopAll();
+            }}
+            onTouchCancel={(e) => {
+              e.preventDefault();
+              stopAll();
+            }}
+            style={{
+              ...s.roundBtn,
+              backgroundColor: isRecording ? "#dc2626" : "#1d4ed8",
+              boxShadow: isRecording
+                ? "0 0 0 14px rgba(220, 38, 38, 0.25), 0 6px 18px rgba(220, 38, 38, 0.45)"
+                : "0 0 0 8px rgba(29, 78, 216, 0.15), 0 4px 14px rgba(29, 78, 216, 0.3)",
+              transform: isRecording ? "scale(1.1)" : "scale(1)",
+            }}
+            aria-label={t.voiceHoldToSpeak}
+          >
+            <span style={{ fontSize: "38px", userSelect: "none" }}>
+              {isRecording ? "🔴" : "🎙️"}
+            </span>
+          </button>
+        </div>
+
+        {/* Prompt / Status beneath mic */}
+        <div style={s.statusTextWrapper}>
+          {isRecording ? (
+            <div style={s.activeRecordingStatus}>
+              <span style={s.pulsingBadge}>
+                {t.voiceRecordingTimer}: {formatTimer(recordingSeconds)}
               </span>
-            </button>
-          </div>
-
-          {/* Prompt / Status beneath mic */}
-          <div style={s.statusTextWrapper}>
-            {isRecording ? (
-              <div style={s.activeRecordingStatus}>
-                <span style={s.pulsingBadge}>
-                  {t.voiceRecordingTimer}: {formatTimer(recordingSeconds)}
-                </span>
-                <span style={{ fontSize: "14px", fontWeight: 700, color: "#b91c1c" }}>
-                  {t.voiceListeningNow}
-                </span>
-              </div>
-            ) : (
-              <div style={s.idleStatus}>
-                <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>
-                  {t.voiceHoldToSpeak}
-                </span>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                  (Release button when finished speaking)
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Live speech preview as they speak */}
-          {isRecording && liveTranscript && (
-            <div style={s.liveTranscriptBox}>
-              <span style={{ fontSize: "12px", fontWeight: 700, color: "#1d4ed8" }}>
-                ✍️ {liveTranscript}
+              <span style={{ fontSize: "14px", fontWeight: 800, color: "#b91c1c" }}>
+                {t.voiceListeningNow}
+              </span>
+            </div>
+          ) : (
+            <div style={s.idleStatus}>
+              <span style={{ fontSize: "15px", fontWeight: 800, color: "var(--text)" }}>
+                {t.voiceHoldToSpeak}
+              </span>
+              <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                (बोलते समय बटन दबाकर रखें / Hold while speaking)
               </span>
             </div>
           )}
         </div>
-      ) : (
-        /* Recorded Player Preview Box */
+      </div>
+
+      {/* CONVERTED TEXT DISPLAY CARD */}
+      {(liveTranscript || savedTranscript) && (
+        <div style={s.convertedTextBox}>
+          <div style={s.convertedTextHeader}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "16px" }}>✍️</span>
+              <span style={{ fontWeight: 800, fontSize: "13px", color: "#1e3a8a" }}>
+                {t.convertedTextTitle}
+              </span>
+            </div>
+
+            {detectedLang && (
+              <span style={s.detectedBadge}>
+                {detectedLang === "hi" ? t.detectedHindi : t.detectedEnglish}
+              </span>
+            )}
+          </div>
+
+          <div style={s.convertedTextContent}>
+            {liveTranscript || savedTranscript}
+          </div>
+        </div>
+      )}
+
+      {/* Recorded Audio Player Preview Box */}
+      {audioUrl && (
         <div style={s.recordedCard}>
           <div style={s.recordedTop}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -290,18 +352,33 @@ const s: Record<string, React.CSSProperties> = {
     border: "2px solid #3b82f6",
     borderRadius: "12px",
     padding: "18px 16px",
-    boxShadow: "0 2px 6px rgba(59, 130, 246, 0.08)",
+    boxShadow: "0 2px 8px rgba(59, 130, 246, 0.08)",
   },
   headerBox: {
-    marginBottom: "16px",
+    marginBottom: "12px",
+  },
+  langPillWrapper: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  langToggleBtn: {
+    backgroundColor: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    borderRadius: "14px",
+    padding: "3px 10px",
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#1d4ed8",
+    cursor: "pointer",
   },
   micArea: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    padding: "16px 0 10px 0",
-    gap: "14px",
+    padding: "14px 0 8px 0",
+    gap: "12px",
   },
   btnWrapper: {
     display: "flex",
@@ -309,8 +386,8 @@ const s: Record<string, React.CSSProperties> = {
     justifyContent: "center",
   },
   roundBtn: {
-    width: "88px",
-    height: "88px",
+    width: "92px",
+    height: "92px",
     borderRadius: "50%",
     border: "none",
     color: "#fff",
@@ -347,22 +424,48 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: "16px",
     border: "1px solid #fca5a5",
   },
-  liveTranscriptBox: {
-    backgroundColor: "#eff6ff",
-    border: "1px solid #bfdbfe",
-    borderRadius: "8px",
-    padding: "8px 12px",
-    maxWidth: "90%",
-    textAlign: "center",
+  convertedTextBox: {
+    backgroundColor: "#f8fafc",
+    border: "1.5px solid #cbd5e1",
+    borderRadius: "10px",
+    padding: "12px 14px",
+    marginTop: "12px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  convertedTextHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "6px",
+  },
+  detectedBadge: {
+    backgroundColor: "#e0f2fe",
+    border: "1px solid #bae6fd",
+    color: "#0369a1",
+    fontSize: "11px",
+    fontWeight: 700,
+    padding: "2px 8px",
+    borderRadius: "10px",
+  },
+  convertedTextContent: {
+    fontSize: "15px",
+    fontWeight: 700,
+    color: "#0f172a",
+    lineHeight: 1.5,
+    wordBreak: "break-word",
   },
   recordedCard: {
     backgroundColor: "#f0fdf4",
     border: "1.5px solid #86efac",
     borderRadius: "10px",
-    padding: "14px",
+    padding: "12px 14px",
     display: "flex",
     flexDirection: "column",
-    gap: "10px",
+    gap: "8px",
+    marginTop: "12px",
   },
   recordedTop: {
     display: "flex",
@@ -380,15 +483,15 @@ const s: Record<string, React.CSSProperties> = {
   },
   audioTag: {
     width: "100%",
-    height: "38px",
+    height: "36px",
   },
   reRecordBtn: {
     backgroundColor: "#fff",
     border: "1px solid #86efac",
     color: "#15803d",
-    padding: "6px 12px",
+    padding: "5px 12px",
     borderRadius: "6px",
-    fontSize: "13px",
+    fontSize: "12px",
     fontWeight: 700,
     cursor: "pointer",
     alignSelf: "flex-start",
