@@ -3,22 +3,21 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MOCK_REPORTS } from "@/app/lib/mockData";
-import type { ReportSummary } from "@/app/lib/api";
+import { useLanguage } from "@/app/lib/LanguageContext";
 import StatusBadge from "@/app/components/StatusBadge";
-import RiskBadge from "@/app/components/RiskBadge";
-
-const STATUS_FILTERS = [
-  { value: "", label: "All" },
-  { value: "pending_analysis", label: "Pending" },
-  { value: "under_review", label: "Under Review" },
-  { value: "action_assigned", label: "Action Assigned" },
-  { value: "resolved", label: "Resolved" },
-  { value: "closed", label: "Closed" },
-];
+import DangerBadge from "@/app/components/DangerBadge";
 
 export default function MyReportsPage() {
-  const [reports] = useState<ReportSummary[]>(MOCK_REPORTS);
+  const { lang, t } = useLanguage();
+  const [reports] = useState(MOCK_REPORTS);
   const [filter, setFilter] = useState("");
+
+  const statusFilters = [
+    { value: "", label: lang === "hi" ? "सभी (All)" : "All" },
+    { value: "action_assigned", label: t.status.action_assigned },
+    { value: "under_review", label: t.status.under_review },
+    { value: "resolved", label: t.status.resolved },
+  ];
 
   const filtered = filter
     ? reports.filter((r) => r.status === filter)
@@ -27,13 +26,13 @@ export default function MyReportsPage() {
   return (
     <div>
       <div style={s.header}>
-        <h1 style={s.title}>My Reports</h1>
-        <Link href="/worker/submit" style={s.newBtn}>+ New Report</Link>
+        <h1 style={s.title}>{t.myReports}</h1>
+        <Link href="/worker/submit" style={s.newBtn}>+ {t.reportIssue}</Link>
       </div>
 
       {/* Status filter chips */}
       <div style={s.filterRow}>
-        {STATUS_FILTERS.map((f) => (
+        {statusFilters.map((f) => (
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
@@ -51,33 +50,41 @@ export default function MyReportsPage() {
         <div style={s.emptyBox}>
           <p style={{ fontSize: "32px", marginBottom: "8px" }}>📭</p>
           <p style={{ fontWeight: 600, color: "var(--text)" }}>
-            No reports with this status
+            {t.noReportsYet}
           </p>
         </div>
       )}
 
-      {filtered.map((r) => (
-        <Link href={`/worker/reports/${r._id}`} key={r._id} style={s.card}>
-          <div style={s.cardTop}>
-            <span style={s.cardTitle}>{r.title}</span>
-            <StatusBadge status={r.status} />
-          </div>
-          <div style={s.cardMeta}>
-            <span>📍 {r.location}</span>
-            <span>•</span>
-            <span style={{ textTransform: "capitalize" }}>{r.category.replace(/_/g, " ")}</span>
-            <span>•</span>
-            <span>{new Date(r.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-          </div>
-          {r.riskAssessment && (
-            <div style={s.riskRow}>
-              <span style={s.riskLabel}>Risk Level:</span>
-              <RiskBadge level={r.riskAssessment.riskLevel} />
-              <span style={s.riskScore}>Score: {r.riskAssessment.riskScore}/100</span>
+      {filtered.map((r) => {
+        const displayTitle = lang === "hi" && r.titleHi ? r.titleHi : r.title;
+        const displayLocation = lang === "hi" && r.locationHi ? r.locationHi : r.location;
+
+        return (
+          <Link href={`/worker/reports/${r._id}`} key={r._id} style={s.card}>
+            <div style={s.cardTop}>
+              <span style={s.cardTitle}>{displayTitle}</span>
+              <StatusBadge status={r.status} />
             </div>
-          )}
-        </Link>
-      ))}
+
+            <div style={s.cardMeta}>
+              <span>📍 {displayLocation}</span>
+              <span>•</span>
+              <span>
+                {new Date(r.createdAt).toLocaleDateString(
+                  lang === "hi" ? "hi-IN" : "en-IN",
+                  { day: "numeric", month: "short", year: "numeric" }
+                )}
+              </span>
+            </div>
+
+            {r.riskAssessment && (
+              <div style={s.dangerRow}>
+                <DangerBadge level={r.riskAssessment.riskLevel} />
+              </div>
+            )}
+          </Link>
+        );
+      })}
     </div>
   );
 }
@@ -91,28 +98,28 @@ const s: Record<string, React.CSSProperties> = {
   },
   title: {
     fontSize: "20px",
-    fontWeight: 700,
+    fontWeight: 800,
     color: "var(--text)",
   },
   newBtn: {
-    backgroundColor: "var(--primary)",
+    backgroundColor: "#1d4ed8",
     color: "#fff",
     textDecoration: "none",
-    padding: "8px 16px",
+    padding: "8px 14px",
     borderRadius: "6px",
-    fontSize: "14px",
-    fontWeight: 600,
+    fontSize: "13px",
+    fontWeight: 700,
   },
   filterRow: {
     display: "flex",
-    gap: "8px",
+    gap: "6px",
     flexWrap: "wrap",
     marginBottom: "16px",
   },
   filterChip: {
     border: "1.5px solid var(--border)",
     borderRadius: "20px",
-    padding: "5px 14px",
+    padding: "5px 12px",
     fontSize: "13px",
     fontWeight: 500,
     cursor: "pointer",
@@ -120,9 +127,9 @@ const s: Record<string, React.CSSProperties> = {
     color: "var(--text-muted)",
   },
   filterChipActive: {
-    backgroundColor: "var(--primary-light)",
-    borderColor: "var(--primary)",
-    color: "var(--primary)",
+    backgroundColor: "#eff6ff",
+    borderColor: "#1d4ed8",
+    color: "#1d4ed8",
     fontWeight: 700,
   },
   card: {
@@ -134,19 +141,21 @@ const s: Record<string, React.CSSProperties> = {
     marginBottom: "10px",
     textDecoration: "none",
     color: "inherit",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
   },
   cardTop: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: "8px",
-    marginBottom: "8px",
+    marginBottom: "6px",
   },
   cardTitle: {
     fontSize: "15px",
-    fontWeight: 600,
+    fontWeight: 700,
     color: "var(--text)",
     flex: 1,
+    lineHeight: 1.35,
   },
   cardMeta: {
     display: "flex",
@@ -155,23 +164,11 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: "13px",
     color: "var(--text-muted)",
     flexWrap: "wrap",
-    marginBottom: "8px",
   },
-  riskRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    marginTop: "6px",
-    borderTop: "1px solid var(--border)",
+  dangerRow: {
+    marginTop: "10px",
     paddingTop: "8px",
-  },
-  riskLabel: {
-    fontSize: "13px",
-    color: "var(--text-muted)",
-  },
-  riskScore: {
-    fontSize: "13px",
-    color: "var(--text-muted)",
+    borderTop: "1px solid #f3f4f6",
   },
   emptyBox: {
     backgroundColor: "#fff",

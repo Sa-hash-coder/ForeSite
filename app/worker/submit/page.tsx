@@ -3,32 +3,11 @@
 import { useState, useRef, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { submitReportApi } from "@/app/lib/api";
-
-const CATEGORIES = [
-  { value: "near_miss",          label: "Near Miss" },
-  { value: "unsafe_condition",   label: "Unsafe Condition" },
-  { value: "unsafe_act",         label: "Unsafe Act" },
-  { value: "equipment_failure",  label: "Equipment Failure" },
-  { value: "chemical_exposure",  label: "Chemical Exposure" },
-  { value: "other",              label: "Other" },
-];
-
-const SEVERITIES = [
-  { value: "low",      label: "Low — Minor, no injury likely",            color: "#15803d" },
-  { value: "medium",   label: "Medium — Could cause injury if not fixed",  color: "#92400e" },
-  { value: "high",     label: "High — Serious injury risk",                color: "#c2410c" },
-  { value: "critical", label: "Critical — Immediate danger",               color: "#991b1b" },
-];
-
-const LOCATIONS = [
-  "Boiler Room A", "Boiler Room B", "Chemical Storage", "Control Room",
-  "Electrical Panel Room", "Loading Bay", "Maintenance Workshop",
-  "Roof / Height Work Area", "Server Room", "Water Treatment Plant",
-  "Warehouse", "Other / Not Listed",
-];
+import { useLanguage } from "@/app/lib/LanguageContext";
 
 export default function SubmitReportPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -42,11 +21,23 @@ export default function SubmitReportPage() {
   const [success, setSuccess] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const categories = Object.entries(t.categories).map(([value, label]) => ({
+    value,
+    label,
+  }));
+
+  const severities = [
+    { value: "low", ...t.severities.low, color: "#16a34a" },
+    { value: "medium", ...t.severities.medium, color: "#d97706" },
+    { value: "high", ...t.severities.high, color: "#ea580c" },
+    { value: "critical", ...t.severities.critical, color: "#dc2626" },
+  ];
+
   function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
-      setError("Image is too large. Please choose an image under 10 MB.");
+      setError(t.errPhotoSize);
       return;
     }
     const reader = new FileReader();
@@ -63,23 +54,23 @@ export default function SubmitReportPage() {
     setError("");
 
     if (!title.trim() || title.trim().length < 5) {
-      setError("Please write a title of at least 5 characters.");
+      setError(t.errTitle);
       return;
     }
-    if (!description.trim() || description.trim().length < 20) {
-      setError("Please describe the issue in at least 20 characters.");
+    if (!description.trim() || description.trim().length < 10) {
+      setError(t.errDesc);
       return;
     }
     if (!location) {
-      setError("Please select a location.");
+      setError(t.errLocation);
       return;
     }
     if (!category) {
-      setError("Please select the type of issue.");
+      setError(t.errCategory);
       return;
     }
     if (!severity) {
-      setError("Please select how serious this is.");
+      setError(t.errSeverity);
       return;
     }
 
@@ -108,24 +99,26 @@ export default function SubmitReportPage() {
     return (
       <div style={s.successCard}>
         <div style={s.successIcon}>✅</div>
-        <h2 style={s.successTitle}>Report Submitted!</h2>
-        <p style={s.successMsg}>
-          Your report has been received. The Safety Officer will review it and take action.
-          You can track its progress in <strong>My Reports</strong>.
-        </p>
+        <h2 style={s.successTitle}>{t.submitSuccessTitle}</h2>
+        <p style={s.successMsg}>{t.submitSuccessMsg}</p>
         <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
           <button onClick={() => router.push("/worker/reports")} style={s.primaryBtn}>
-            View My Reports
+            {t.viewMyReports}
           </button>
           <button
             onClick={() => {
-              setTitle(""); setDescription(""); setLocation(""); setCategory("");
-              setSeverity(""); setImageBase64(null); setImagePreview(null);
+              setTitle("");
+              setDescription("");
+              setLocation("");
+              setCategory("");
+              setSeverity("");
+              setImageBase64(null);
+              setImagePreview(null);
               setSuccess(false);
             }}
             style={s.outlineBtn}
           >
-            Submit Another
+            {t.submitAnother}
           </button>
         </div>
       </div>
@@ -134,68 +127,63 @@ export default function SubmitReportPage() {
 
   return (
     <div>
-      <h1 style={s.pageTitle}>Report a Safety Issue</h1>
-      <p style={s.pageSubtitle}>
-        Fill in the details below. All fields marked <strong>*</strong> are required.
-      </p>
+      <h1 style={s.pageTitle}>{t.submitTitle}</h1>
+      <p style={s.pageSubtitle}>{t.submitSubtitle}</p>
 
-      {error && <div style={s.errorBox}>⚠ {error}</div>}
+      {error && <div style={s.errorBox}>⚠️ {error}</div>}
 
       <form onSubmit={handleSubmit} style={s.form}>
-
         {/* Title */}
         <div style={s.field}>
-          <label style={s.label} htmlFor="title">What happened? *</label>
-          <p style={s.hint}>Write a short title describing the problem</p>
+          <label style={s.label} htmlFor="title">{t.whatHappened}</label>
+          <p style={s.hint}>{t.whatHappenedHint}</p>
           <input
             id="title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Broken guard rail near staircase"
+            placeholder={t.whatHappenedPlaceholder}
             style={s.input}
-            maxLength={200}
+            maxLength={150}
           />
-          <span style={s.charCount}>{title.length}/200</span>
-        </div>
-
-        {/* Description */}
-        <div style={s.field}>
-          <label style={s.label} htmlFor="description">Describe the issue in detail *</label>
-          <p style={s.hint}>Where exactly? What did you see? Who is at risk?</p>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. The guard rail on the 2nd floor staircase is broken. It has been like this for 3 days. Workers use this staircase every hour. Someone could fall."
-            rows={5}
-            style={s.textarea}
-            maxLength={2000}
-          />
-          <span style={s.charCount}>{description.length}/2000</span>
         </div>
 
         {/* Location */}
         <div style={s.field}>
-          <label style={s.label} htmlFor="location">Location *</label>
+          <label style={s.label} htmlFor="location">{t.locationLabel}</label>
           <select
             id="location"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             style={s.select}
           >
-            <option value="">-- Select location --</option>
-            {LOCATIONS.map((l) => (
-              <option key={l} value={l}>{l}</option>
+            <option value="">{t.selectLocation}</option>
+            {t.locations.map((loc, idx) => (
+              <option key={idx} value={loc}>{loc}</option>
             ))}
           </select>
         </div>
 
+        {/* Description */}
+        <div style={s.field}>
+          <label style={s.label} htmlFor="description">{t.describeIssue}</label>
+          <p style={s.hint}>{t.describeHint}</p>
+          <textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t.describePlaceholder}
+            rows={3}
+            style={s.textarea}
+            maxLength={1000}
+          />
+        </div>
+
         {/* Category */}
         <div style={s.field}>
-          <label style={s.label}>Type of Issue *</label>
+          <label style={s.label}>{t.issueTypeLabel}</label>
           <div style={s.chipGrid}>
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <button
                 key={c.value}
                 type="button"
@@ -213,9 +201,9 @@ export default function SubmitReportPage() {
 
         {/* Severity */}
         <div style={s.field}>
-          <label style={s.label}>How serious is this? *</label>
+          <label style={s.label}>{t.severityLabel}</label>
           <div style={s.severityGrid}>
-            {SEVERITIES.map((sv) => (
+            {severities.map((sv) => (
               <button
                 key={sv.value}
                 type="button"
@@ -223,14 +211,14 @@ export default function SubmitReportPage() {
                 style={{
                   ...s.severityOption,
                   border: `2px solid ${severity === sv.value ? sv.color : "#e5e7eb"}`,
-                  backgroundColor: severity === sv.value ? `${sv.color}10` : "#fff",
+                  backgroundColor: severity === sv.value ? `${sv.color}12` : "#fff",
                 }}
               >
-                <span style={{ fontWeight: 700, color: sv.color, fontSize: "14px" }}>
-                  {sv.value.toUpperCase()}
+                <span style={{ fontWeight: 800, color: sv.color, fontSize: "14px" }}>
+                  {sv.title}
                 </span>
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
-                  {sv.label}
+                <span style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px", lineHeight: 1.3 }}>
+                  {sv.desc}
                 </span>
               </button>
             ))}
@@ -239,8 +227,8 @@ export default function SubmitReportPage() {
 
         {/* Photo */}
         <div style={s.field}>
-          <label style={s.label}>Add a Photo (optional)</label>
-          <p style={s.hint}>A photo helps the safety team understand the problem faster</p>
+          <label style={s.label}>{t.photoLabel}</label>
+          <p style={s.hint}>{t.photoHint}</p>
           <input
             ref={fileRef}
             type="file"
@@ -256,9 +244,13 @@ export default function SubmitReportPage() {
               <button
                 type="button"
                 style={s.removeImg}
-                onClick={() => { setImageBase64(null); setImagePreview(null); if (fileRef.current) fileRef.current.value = ""; }}
+                onClick={() => {
+                  setImageBase64(null);
+                  setImagePreview(null);
+                  if (fileRef.current) fileRef.current.value = "";
+                }}
               >
-                ✕ Remove photo
+                {t.removePhoto}
               </button>
             </div>
           ) : (
@@ -267,7 +259,7 @@ export default function SubmitReportPage() {
               onClick={() => fileRef.current?.click()}
               style={s.photoBtn}
             >
-              📷 Take or Choose Photo
+              {t.photoBtn}
             </button>
           )}
         </div>
@@ -282,7 +274,7 @@ export default function SubmitReportPage() {
             cursor: submitting ? "not-allowed" : "pointer",
           }}
         >
-          {submitting ? "Submitting..." : "Submit Report"}
+          {submitting ? t.submitting : t.submitBtn}
         </button>
       </form>
     </div>
@@ -290,22 +282,9 @@ export default function SubmitReportPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  pageTitle: {
-    fontSize: "20px",
-    fontWeight: 700,
-    color: "var(--text)",
-    marginBottom: "4px",
-  },
-  pageSubtitle: {
-    fontSize: "14px",
-    color: "var(--text-muted)",
-    marginBottom: "20px",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
+  pageTitle: { fontSize: "20px", fontWeight: 800, color: "var(--text)", marginBottom: "4px" },
+  pageSubtitle: { fontSize: "14px", color: "var(--text-muted)", marginBottom: "16px" },
+  form: { display: "flex", flexDirection: "column", gap: "14px" },
   field: {
     display: "flex",
     flexDirection: "column",
@@ -313,20 +292,13 @@ const s: Record<string, React.CSSProperties> = {
     backgroundColor: "#fff",
     border: "1px solid var(--border)",
     borderRadius: "8px",
-    padding: "16px",
+    padding: "14px 16px",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
   },
-  label: {
-    fontSize: "15px",
-    fontWeight: 700,
-    color: "var(--text)",
-  },
-  hint: {
-    fontSize: "13px",
-    color: "var(--text-muted)",
-    marginTop: "2px",
-  },
+  label: { fontSize: "15px", fontWeight: 700, color: "var(--text)" },
+  hint: { fontSize: "13px", color: "var(--text-muted)" },
   input: {
-    border: "1px solid var(--border)",
+    border: "1.5px solid var(--border)",
     borderRadius: "6px",
     padding: "10px 12px",
     fontSize: "15px",
@@ -337,7 +309,7 @@ const s: Record<string, React.CSSProperties> = {
     width: "100%",
   },
   textarea: {
-    border: "1px solid var(--border)",
+    border: "1.5px solid var(--border)",
     borderRadius: "6px",
     padding: "10px 12px",
     fontSize: "15px",
@@ -350,7 +322,7 @@ const s: Record<string, React.CSSProperties> = {
     fontFamily: "inherit",
   },
   select: {
-    border: "1px solid var(--border)",
+    border: "1.5px solid var(--border)",
     borderRadius: "6px",
     padding: "10px 12px",
     fontSize: "15px",
@@ -359,12 +331,6 @@ const s: Record<string, React.CSSProperties> = {
     marginTop: "6px",
     outline: "none",
     width: "100%",
-  },
-  charCount: {
-    fontSize: "12px",
-    color: "var(--text-light)",
-    alignSelf: "flex-end",
-    marginTop: "2px",
   },
   chipGrid: {
     display: "flex",
@@ -383,32 +349,33 @@ const s: Record<string, React.CSSProperties> = {
     color: "var(--text)",
   },
   chipSelected: {
-    backgroundColor: "var(--primary-light)",
-    borderColor: "var(--primary)",
-    color: "var(--primary)",
+    backgroundColor: "#eff6ff",
+    borderColor: "#1d4ed8",
+    color: "#1d4ed8",
     fontWeight: 700,
   },
   severityGrid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
-    gap: "10px",
+    gap: "8px",
     marginTop: "8px",
   },
   severityOption: {
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-start",
-    padding: "10px 12px",
-    borderRadius: "6px",
+    padding: "10px",
+    borderRadius: "8px",
     cursor: "pointer",
     textAlign: "left",
   },
   photoBtn: {
-    backgroundColor: "var(--bg)",
+    backgroundColor: "#fafaf9",
     border: "2px dashed var(--border)",
     borderRadius: "6px",
-    padding: "18px",
+    padding: "16px",
     fontSize: "15px",
+    fontWeight: 600,
     color: "var(--text-muted)",
     cursor: "pointer",
     width: "100%",
@@ -435,17 +402,19 @@ const s: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     padding: "0",
     textAlign: "left",
+    fontWeight: 600,
   },
   submitBtn: {
-    backgroundColor: "var(--primary)",
+    backgroundColor: "#1d4ed8",
     color: "#fff",
     border: "none",
-    borderRadius: "6px",
-    padding: "15px",
-    fontSize: "17px",
-    fontWeight: 700,
+    borderRadius: "8px",
+    padding: "14px",
+    fontSize: "16px",
+    fontWeight: 800,
     width: "100%",
     marginTop: "4px",
+    boxShadow: "0 2px 4px rgba(29, 78, 216, 0.2)",
   },
   errorBox: {
     backgroundColor: "var(--danger-light)",
@@ -454,36 +423,38 @@ const s: Record<string, React.CSSProperties> = {
     padding: "12px 16px",
     borderRadius: "6px",
     fontSize: "14px",
+    fontWeight: 600,
     marginBottom: "4px",
   },
   successCard: {
     backgroundColor: "#fff",
     border: "1px solid var(--border)",
-    borderRadius: "8px",
-    padding: "40px 24px",
+    borderRadius: "10px",
+    padding: "36px 20px",
     textAlign: "center",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
   },
-  successIcon: { fontSize: "48px", marginBottom: "16px" },
-  successTitle: { fontSize: "22px", fontWeight: 700, color: "var(--text)", marginBottom: "12px" },
-  successMsg: { fontSize: "15px", color: "var(--text-muted)", marginBottom: "24px", lineHeight: 1.7 },
+  successIcon: { fontSize: "44px", marginBottom: "12px" },
+  successTitle: { fontSize: "20px", fontWeight: 800, color: "var(--text)", marginBottom: "10px" },
+  successMsg: { fontSize: "14px", color: "var(--text-muted)", marginBottom: "20px", lineHeight: 1.6 },
   primaryBtn: {
-    backgroundColor: "var(--primary)",
+    backgroundColor: "#1d4ed8",
     color: "#fff",
     border: "none",
     borderRadius: "6px",
-    padding: "12px 24px",
-    fontSize: "15px",
-    fontWeight: 600,
+    padding: "12px 20px",
+    fontSize: "14px",
+    fontWeight: 700,
     cursor: "pointer",
   },
   outlineBtn: {
     backgroundColor: "#fff",
-    color: "var(--primary)",
-    border: "1.5px solid var(--primary)",
+    color: "#1d4ed8",
+    border: "1.5px solid #1d4ed8",
     borderRadius: "6px",
-    padding: "12px 24px",
-    fontSize: "15px",
-    fontWeight: 600,
+    padding: "12px 20px",
+    fontSize: "14px",
+    fontWeight: 700,
     cursor: "pointer",
   },
 };

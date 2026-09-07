@@ -1,3 +1,7 @@
+"use client";
+
+import { useLanguage } from "@/app/lib/LanguageContext";
+
 type StatusKey =
   | "pending_analysis"
   | "analysis_complete"
@@ -6,31 +10,35 @@ type StatusKey =
   | "resolved"
   | "closed";
 
-const STATUS_MAP: Record<StatusKey, { label: string; color: string; bg: string }> = {
-  pending_analysis:  { label: "Checking...",      color: "#92400e", bg: "#fef3c7" },
-  analysis_complete: { label: "AI Done",          color: "#1e40af", bg: "#dbeafe" },
-  under_review:      { label: "Under Review",     color: "#7c3aed", bg: "#ede9fe" },
-  action_assigned:   { label: "Action Assigned",  color: "#c2410c", bg: "#ffedd5" },
-  resolved:          { label: "Resolved",         color: "#15803d", bg: "#dcfce7" },
-  closed:            { label: "Closed",           color: "#374151", bg: "#f3f4f6" },
+const STATUS_STYLE: Record<StatusKey, { color: string; bg: string }> = {
+  pending_analysis: { color: "#92400e", bg: "#fef3c7" },
+  analysis_complete: { color: "#1e40af", bg: "#dbeafe" },
+  under_review: { color: "#6b21a8", bg: "#f3e8ff" },
+  action_assigned: { color: "#c2410c", bg: "#ffedd5" },
+  resolved: { color: "#15803d", bg: "#dcfce7" },
+  closed: { color: "#374151", bg: "#f3f4f6" },
 };
 
 export default function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_MAP[status as StatusKey] ?? { label: status, color: "#374151", bg: "#f3f4f6" };
+  const { t } = useLanguage();
+  const key = status as StatusKey;
+  const label = t.status[key] || status;
+  const style = STATUS_STYLE[key] || { color: "#374151", bg: "#f3f4f6" };
+
   return (
     <span
       style={{
         display: "inline-block",
-        padding: "2px 10px",
+        padding: "3px 10px",
         borderRadius: "12px",
-        fontSize: "13px",
+        fontSize: "12px",
         fontWeight: 600,
-        color: s.color,
-        backgroundColor: s.bg,
+        color: style.color,
+        backgroundColor: style.bg,
         whiteSpace: "nowrap",
       }}
     >
-      {s.label}
+      {label}
     </span>
   );
 }
