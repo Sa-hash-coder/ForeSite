@@ -26,6 +26,7 @@ export default function HoldToSpeakMic({
   const [savedTranscript, setSavedTranscript] = useState("");
   const [detectedLang, setDetectedLang] = useState<"hi" | "en" | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
+  const [sttStatus, setSttStatus] = useState<"idle" | "listening" | "success" | "no_speech">("idle");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -33,7 +34,7 @@ export default function HoldToSpeakMic({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const isHeldRef = useRef(false);
-  const accumulatedTranscriptRef = useRef("");
+  const transcriptBufferRef = useRef("");
 
   // Sync speech recognition language with global app language when changed
   useEffect(() => {
@@ -46,7 +47,7 @@ export default function HoldToSpeakMic({
       if (timerRef.current) clearInterval(timerRef.current);
       if (recognitionRef.current) {
         try {
-          recognitionRef.current.stop();
+          recognitionRef.current.abort();
         } catch {
           // ignore
         }
@@ -65,9 +66,10 @@ export default function HoldToSpeakMic({
     isHeldRef.current = true;
     setMicError(null);
     setLiveTranscript("");
-    accumulatedTranscriptRef.current = "";
+    setSttStatus("listening");
+    transcriptBufferRef.current = "";
 
-    // 1. Start Speech-To-Text Recognition
+    // 1. Initialize & Start Web Speech Recognition directly
     if (typeof window !== "undefined") {
       const win = window as unknown as IWindow;
       const SpeechRecognitionClass =
@@ -79,35 +81,49 @@ export default function HoldToSpeakMic({
           recognitionRef.current = recognition;
           recognition.continuous = true;
           recognition.interimResults = true;
+          recognition.maxAlternatives = 1;
           recognition.lang = speechLang === "hi" ? "hi-IN" : "en-IN";
 
           recognition.onresult = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-            let finalStr = "";
+            let accumulated = "";
             for (let i = 0; i < event.results.length; ++i) {
-              finalStr += event.results[i][0].transcript + " ";
+              const text = event.results[i][0]?.transcript || "";
+              accumulated += text + " ";
             }
-            const trimmed = finalStr.trim();
-            if (trimmed) {
-              accumulatedTranscriptRef.current = trimmed;
-              setLiveTranscript(trimmed);
-              setSavedTranscript(trimmed);
-              setDetectedLang(detectTextLanguage(trimmed));
-              onTranscript(trimmed);
+            const cleanText = accumulated.trim();
+            if (cleanText) {
+              transcriptBufferRef.current = cleanText;
+              setLiveTranscript(cleanText);
+              setSavedTranscript(cleanText);
+              setDetectedLang(detectTextLanguage(cleanText));
+              setSttStatus("success");
+              onTranscript(cleanText);
             }
           };
 
-          recognition.onerror = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-            console.log("Speech recognition notice:", e?.error);
+          recognition.onerror = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+            console.warn("Speech recognition event:", event?.error);
+            if (event?.error === "not-allowed") {
+              setMicError(t.errMicPermission);
+            }
+          };
+
+          recognition.onend = () => {
+            // Check if we captured speech
+            if (transcriptBufferRef.current.trim()) {
+              setSavedTranscript(transcriptBufferRef.current.trim());
+              setSttStatus("success");
+            }
           };
 
           recognition.start();
         } catch (err) {
-          console.log("Speech recognition start notice:", err);
+          console.warn("Speech recognition initialization:", err);
         }
       }
     }
 
-    // 2. Start Audio Stream & MediaRecorder
+    // 2. Start MediaRecorder for Audio File
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
@@ -134,7 +150,7 @@ export default function HoldToSpeakMic({
         };
         reader.readAsDataURL(audioBlob);
 
-        // Stop all tracks to release microphone hardware
+        // Release mic stream
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -180,24 +196,16 @@ export default function HoldToSpeakMic({
       }
     }
 
-    // Make sure we have recognized text displayed
-    let finalText = accumulatedTranscriptRef.current || liveTranscript || savedTranscript;
-
-    // If speech recognition engine produced no transcript (e.g. browser without STT backend),
-    // provide an accurate transcribed text according to language so the user always sees what was spoken
-    if (!finalText || finalText.trim().length === 0) {
-      if (speechLang === "hi" || lang === "hi") {
-        finalText = "पानी के पास खुला तार देखा गया है, तुरंत ठीक करने की आवश्यकता है।";
-      } else {
-        finalText = "Exposed electrical wiring observed near the pump area, needs immediate repair.";
-      }
+    // Finalize the actual transcript
+    const finalSpoken = transcriptBufferRef.current.trim() || liveTranscript.trim();
+    if (finalSpoken) {
+      setSavedTranscript(finalSpoken);
+      setDetectedLang(detectTextLanguage(finalSpoken));
+      setSttStatus("success");
+      onTranscript(finalSpoken);
+    } else {
+      setSttStatus("no_speech");
     }
-
-    const detected = detectTextLanguage(finalText);
-    setSavedTranscript(finalText);
-    setLiveTranscript(finalText);
-    setDetectedLang(detected);
-    onTranscript(finalText);
   }
 
   function deleteRecording() {
@@ -206,7 +214,8 @@ export default function HoldToSpeakMic({
     setLiveTranscript("");
     setSavedTranscript("");
     setDetectedLang(null);
-    accumulatedTranscriptRef.current = "";
+    setSttStatus("idle");
+    transcriptBufferRef.current = "";
     onAudioChange(null);
     onTranscript("");
   }
@@ -319,8 +328,8 @@ export default function HoldToSpeakMic({
         </div>
       </div>
 
-      {/* RECORDED AUDIO & CONVERTED TEXT SHOWCASE CARD */}
-      {(audioUrl || savedTranscript) && (
+      {/* RECORDED AUDIO & LIVE ACTUAL CONVERTED TEXT SHOWCASE */}
+      {(audioUrl || savedTranscript || liveTranscript) && (
         <div style={s.recordedCard}>
           <div style={s.recordedTop}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -341,7 +350,7 @@ export default function HoldToSpeakMic({
             <audio controls src={audioUrl} style={s.audioTag} />
           )}
 
-          {/* PROMINENT CONVERTED TEXT BOX */}
+          {/* REAL TRANSCRIBED TEXT BOX */}
           <div style={s.convertedTextBox}>
             <div style={s.convertedTextHeader}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -358,14 +367,21 @@ export default function HoldToSpeakMic({
               )}
             </div>
 
-            {/* Editable Converted Text Area */}
-            <textarea
-              value={savedTranscript}
-              onChange={(e) => handleTextEdit(e.target.value)}
-              rows={2}
-              style={s.convertedTextArea}
-              placeholder="Converted speech text..."
-            />
+            {savedTranscript || liveTranscript ? (
+              <textarea
+                value={savedTranscript || liveTranscript}
+                onChange={(e) => handleTextEdit(e.target.value)}
+                rows={2}
+                style={s.convertedTextArea}
+                placeholder="What you spoke will appear here..."
+              />
+            ) : (
+              <div style={s.noSpeechWarning}>
+                {lang === "hi"
+                  ? "⚠️ आवाज़ स्पष्ट नहीं सुनाई दी। आप सीधे नीचे लिख भी सकते हैं या दोबारा बोल सकते हैं।"
+                  : "⚠️ No clear speech captured. You can type below or re-record."}
+              </div>
+            )}
           </div>
 
           <button type="button" onClick={deleteRecording} style={s.reRecordBtn}>
@@ -519,6 +535,12 @@ const s: Record<string, React.CSSProperties> = {
     resize: "vertical",
     fontFamily: "inherit",
     backgroundColor: "transparent",
+  },
+  noSpeechWarning: {
+    fontSize: "13px",
+    color: "#6b7280",
+    fontStyle: "italic",
+    padding: "4px 0",
   },
   reRecordBtn: {
     backgroundColor: "#fff",
