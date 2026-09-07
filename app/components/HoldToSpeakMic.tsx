@@ -20,13 +20,13 @@ export default function HoldToSpeakMic({
   const { lang, t } = useLanguage();
   const [speechLang, setSpeechLang] = useState<"hi" | "en">(lang === "hi" ? "hi" : "en");
   const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [savedTranscript, setSavedTranscript] = useState("");
   const [detectedLang, setDetectedLang] = useState<"hi" | "en" | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
-  const [sttStatus, setSttStatus] = useState<"idle" | "listening" | "success" | "no_speech">("idle");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -35,6 +35,7 @@ export default function HoldToSpeakMic({
   const recognitionRef = useRef<any>(null);
   const isHeldRef = useRef(false);
   const transcriptBufferRef = useRef("");
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Sync speech recognition language with global app language when changed
   useEffect(() => {
@@ -52,6 +53,9 @@ export default function HoldToSpeakMic({
           // ignore
         }
       }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
     };
   }, []);
 
@@ -61,12 +65,13 @@ export default function HoldToSpeakMic({
     return hasDevanagari ? "hi" : "en";
   }
 
-  async function startAll() {
-    if (isHeldRef.current) return;
+  async function startRecording() {
+    if (isHeldRef.current || isRecording) return;
     isHeldRef.current = true;
+    setIsRecording(true);
+    setIsProcessing(false);
     setMicError(null);
     setLiveTranscript("");
-    setSttStatus("listening");
     transcriptBufferRef.current = "";
 
     // 1. Initialize & Start Web Speech Recognition directly
@@ -96,24 +101,25 @@ export default function HoldToSpeakMic({
               setLiveTranscript(cleanText);
               setSavedTranscript(cleanText);
               setDetectedLang(detectTextLanguage(cleanText));
-              setSttStatus("success");
               onTranscript(cleanText);
             }
           };
 
           recognition.onerror = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-            console.warn("Speech recognition event:", event?.error);
+            console.warn("Speech recognition notice:", event?.error);
             if (event?.error === "not-allowed") {
               setMicError(t.errMicPermission);
             }
           };
 
           recognition.onend = () => {
-            // Check if we captured speech
-            if (transcriptBufferRef.current.trim()) {
-              setSavedTranscript(transcriptBufferRef.current.trim());
-              setSttStatus("success");
+            const final = transcriptBufferRef.current.trim();
+            if (final) {
+              setSavedTranscript(final);
+              setDetectedLang(detectTextLanguage(final));
+              onTranscript(final);
             }
+            setIsProcessing(false);
           };
 
           recognition.start();
@@ -123,9 +129,10 @@ export default function HoldToSpeakMic({
       }
     }
 
-    // 2. Start MediaRecorder for Audio File
+    // 2. Start MediaRecorder for Audio Note
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       audioChunksRef.current = [];
 
       const mediaRecorder = new MediaRecorder(stream);
@@ -151,11 +158,13 @@ export default function HoldToSpeakMic({
         reader.readAsDataURL(audioBlob);
 
         // Release mic stream
-        stream.getTracks().forEach((track) => track.stop());
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
       };
 
       mediaRecorder.start();
-      setIsRecording(true);
       setRecordingSeconds(0);
 
       timerRef.current = setInterval(() => {
@@ -164,14 +173,16 @@ export default function HoldToSpeakMic({
     } catch {
       setMicError(t.errMicPermission);
       isHeldRef.current = false;
+      setIsRecording(false);
       return;
     }
   }
 
-  function stopAll() {
-    if (!isHeldRef.current) return;
+  function stopRecording() {
+    if (!isHeldRef.current && !isRecording) return;
     isHeldRef.current = false;
     setIsRecording(false);
+    setIsProcessing(true);
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -187,7 +198,7 @@ export default function HoldToSpeakMic({
       }
     }
 
-    // Stop Speech Recognition
+    // Gently stop Speech Recognition so it flushes the final audio buffer to Google STT server
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -196,15 +207,23 @@ export default function HoldToSpeakMic({
       }
     }
 
-    // Finalize the actual transcript
-    const finalSpoken = transcriptBufferRef.current.trim() || liveTranscript.trim();
-    if (finalSpoken) {
-      setSavedTranscript(finalSpoken);
-      setDetectedLang(detectTextLanguage(finalSpoken));
-      setSttStatus("success");
-      onTranscript(finalSpoken);
+    // Set a safety timeout to clear processing state
+    setTimeout(() => {
+      setIsProcessing(false);
+      const finalVal = transcriptBufferRef.current.trim() || liveTranscript.trim();
+      if (finalVal) {
+        setSavedTranscript(finalVal);
+        setDetectedLang(detectTextLanguage(finalVal));
+        onTranscript(finalVal);
+      }
+    }, 1200);
+  }
+
+  function toggleClickToRecord() {
+    if (isRecording) {
+      stopRecording();
     } else {
-      setSttStatus("no_speech");
+      startRecording();
     }
   }
 
@@ -214,7 +233,7 @@ export default function HoldToSpeakMic({
     setLiveTranscript("");
     setSavedTranscript("");
     setDetectedLang(null);
-    setSttStatus("idle");
+    setIsProcessing(false);
     transcriptBufferRef.current = "";
     onAudioChange(null);
     onTranscript("");
@@ -245,7 +264,7 @@ export default function HoldToSpeakMic({
             </div>
           </div>
 
-          {/* Speech Language Selector Pill */}
+          {/* Speech Recognition Language Switcher */}
           <div style={s.langPillWrapper}>
             <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>
               {t.speakingLanguage}
@@ -269,24 +288,20 @@ export default function HoldToSpeakMic({
 
       {/* Main Mic Section */}
       <div style={s.micArea}>
-        {/* Round Hold-To-Speak Button */}
+        {/* Round Hold/Tap-To-Speak Button */}
         <div style={s.btnWrapper}>
           <button
             type="button"
-            onMouseDown={startAll}
-            onMouseUp={stopAll}
-            onMouseLeave={stopAll}
+            onClick={toggleClickToRecord}
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
             onTouchStart={(e) => {
               e.preventDefault();
-              startAll();
+              startRecording();
             }}
             onTouchEnd={(e) => {
               e.preventDefault();
-              stopAll();
-            }}
-            onTouchCancel={(e) => {
-              e.preventDefault();
-              stopAll();
+              stopRecording();
             }}
             style={{
               ...s.roundBtn,
@@ -296,7 +311,7 @@ export default function HoldToSpeakMic({
                 : "0 0 0 8px rgba(29, 78, 216, 0.15), 0 4px 14px rgba(29, 78, 216, 0.3)",
               transform: isRecording ? "scale(1.1)" : "scale(1)",
             }}
-            aria-label={t.voiceHoldToSpeak}
+            aria-label="Microphone"
           >
             <span style={{ fontSize: "38px", userSelect: "none" }}>
               {isRecording ? "🔴" : "🎙️"}
@@ -304,7 +319,7 @@ export default function HoldToSpeakMic({
           </button>
         </div>
 
-        {/* Status indicator beneath mic */}
+        {/* Status text */}
         <div style={s.statusTextWrapper}>
           {isRecording ? (
             <div style={s.activeRecordingStatus}>
@@ -314,21 +329,34 @@ export default function HoldToSpeakMic({
               <span style={{ fontSize: "14px", fontWeight: 800, color: "#b91c1c" }}>
                 {t.voiceListeningNow}
               </span>
+              <button
+                type="button"
+                onClick={stopRecording}
+                style={s.stopSpeakingBtn}
+              >
+                ⏹️ {lang === "hi" ? "बोलना पूरा हुआ (Done)" : "Finish Speaking (Done)"}
+              </button>
+            </div>
+          ) : isProcessing ? (
+            <div style={s.processingStatus}>
+              <span style={{ fontSize: "14px", fontWeight: 700, color: "#1d4ed8" }}>
+                ⏳ {lang === "hi" ? "आवाज़ से टेक्स्ट बनाया जा रहा है..." : "Converting your speech to text..."}
+              </span>
             </div>
           ) : (
             <div style={s.idleStatus}>
               <span style={{ fontSize: "15px", fontWeight: 800, color: "var(--text)" }}>
-                {t.voiceHoldToSpeak}
+                {lang === "hi" ? "माइक दबाएं और बोलें (Tap or Hold to Speak)" : "Tap or Hold to Speak"}
               </span>
               <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                (बोलते समय बटन दबाकर रखें / Hold while speaking)
+                {lang === "hi" ? "बोलने के बाद 'Done' दबाएं या बटन छोड़ें" : "Release button or tap Done when finished"}
               </span>
             </div>
           )}
         </div>
       </div>
 
-      {/* RECORDED AUDIO & LIVE ACTUAL CONVERTED TEXT SHOWCASE */}
+      {/* RECORDED AUDIO & GENUINE LIVE CONVERTED TEXT SHOWCASE */}
       {(audioUrl || savedTranscript || liveTranscript) && (
         <div style={s.recordedCard}>
           <div style={s.recordedTop}>
@@ -373,13 +401,17 @@ export default function HoldToSpeakMic({
                 onChange={(e) => handleTextEdit(e.target.value)}
                 rows={2}
                 style={s.convertedTextArea}
-                placeholder="What you spoke will appear here..."
+                placeholder="Transcribed text..."
               />
+            ) : isProcessing ? (
+              <div style={s.processingText}>
+                ⏳ {lang === "hi" ? "टेक्स्ट तैयार हो रहा है..." : "Transcribing your words..."}
+              </div>
             ) : (
               <div style={s.noSpeechWarning}>
                 {lang === "hi"
                   ? "⚠️ आवाज़ स्पष्ट नहीं सुनाई दी। आप सीधे नीचे लिख भी सकते हैं या दोबारा बोल सकते हैं।"
-                  : "⚠️ No clear speech captured. You can type below or re-record."}
+                  : "⚠️ No speech detected. Please speak closer to the mic or type below."}
               </div>
             )}
           </div>
@@ -445,7 +477,7 @@ const s: Record<string, React.CSSProperties> = {
     transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
     outline: "none",
     WebkitTapHighlightColor: "transparent",
-    touchAction: "none",
+    touchAction: "manipulation",
   },
   statusTextWrapper: {
     textAlign: "center",
@@ -460,7 +492,25 @@ const s: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: "6px",
+    gap: "8px",
+  },
+  processingStatus: {
+    padding: "6px 12px",
+    backgroundColor: "#eff6ff",
+    borderRadius: "12px",
+    border: "1px solid #bfdbfe",
+  },
+  stopSpeakingBtn: {
+    backgroundColor: "#dc2626",
+    color: "#fff",
+    border: "none",
+    borderRadius: "20px",
+    padding: "6px 16px",
+    fontSize: "13px",
+    fontWeight: 700,
+    cursor: "pointer",
+    marginTop: "4px",
+    boxShadow: "0 2px 4px rgba(220, 38, 38, 0.3)",
   },
   pulsingBadge: {
     backgroundColor: "#fee2e2",
@@ -535,6 +585,13 @@ const s: Record<string, React.CSSProperties> = {
     resize: "vertical",
     fontFamily: "inherit",
     backgroundColor: "transparent",
+  },
+  processingText: {
+    fontSize: "13px",
+    color: "#1d4ed8",
+    fontWeight: 600,
+    fontStyle: "italic",
+    padding: "4px 0",
   },
   noSpeechWarning: {
     fontSize: "13px",
