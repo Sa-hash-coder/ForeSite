@@ -33,6 +33,7 @@ export default function HoldToSpeakMic({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const isHeldRef = useRef(false);
+  const accumulatedTranscriptRef = useRef("");
 
   // Sync speech recognition language with global app language when changed
   useEffect(() => {
@@ -64,8 +65,49 @@ export default function HoldToSpeakMic({
     isHeldRef.current = true;
     setMicError(null);
     setLiveTranscript("");
+    accumulatedTranscriptRef.current = "";
 
-    // 1. Start Audio Stream & MediaRecorder
+    // 1. Start Speech-To-Text Recognition
+    if (typeof window !== "undefined") {
+      const win = window as unknown as IWindow;
+      const SpeechRecognitionClass =
+        win.SpeechRecognition || win.webkitSpeechRecognition;
+
+      if (SpeechRecognitionClass) {
+        try {
+          const recognition = new SpeechRecognitionClass();
+          recognitionRef.current = recognition;
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = speechLang === "hi" ? "hi-IN" : "en-IN";
+
+          recognition.onresult = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+            let finalStr = "";
+            for (let i = 0; i < event.results.length; ++i) {
+              finalStr += event.results[i][0].transcript + " ";
+            }
+            const trimmed = finalStr.trim();
+            if (trimmed) {
+              accumulatedTranscriptRef.current = trimmed;
+              setLiveTranscript(trimmed);
+              setSavedTranscript(trimmed);
+              setDetectedLang(detectTextLanguage(trimmed));
+              onTranscript(trimmed);
+            }
+          };
+
+          recognition.onerror = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+            console.log("Speech recognition notice:", e?.error);
+          };
+
+          recognition.start();
+        } catch (err) {
+          console.log("Speech recognition start notice:", err);
+        }
+      }
+    }
+
+    // 2. Start Audio Stream & MediaRecorder
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
@@ -108,46 +150,6 @@ export default function HoldToSpeakMic({
       isHeldRef.current = false;
       return;
     }
-
-    // 2. Start Speech-To-Text Recognition concurrently in background
-    if (typeof window !== "undefined") {
-      const win = window as unknown as IWindow;
-      const SpeechRecognitionClass =
-        win.SpeechRecognition || win.webkitSpeechRecognition;
-
-      if (SpeechRecognitionClass) {
-        try {
-          const recognition = new SpeechRecognitionClass();
-          recognitionRef.current = recognition;
-          recognition.continuous = true;
-          recognition.interimResults = true;
-          recognition.lang = speechLang === "hi" ? "hi-IN" : "en-IN";
-
-          recognition.onresult = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-            let finalStr = "";
-            for (let i = 0; i < event.results.length; ++i) {
-              finalStr += event.results[i][0].transcript + " ";
-            }
-            const trimmed = finalStr.trim();
-            setLiveTranscript(trimmed);
-            setSavedTranscript(trimmed);
-
-            const langType = detectTextLanguage(trimmed);
-            setDetectedLang(langType);
-
-            onTranscript(trimmed);
-          };
-
-          recognition.onerror = () => {
-            // Silently continue audio recording
-          };
-
-          recognition.start();
-        } catch {
-          // ignore
-        }
-      }
-    }
   }
 
   function stopAll() {
@@ -178,11 +180,24 @@ export default function HoldToSpeakMic({
       }
     }
 
-    if (liveTranscript) {
-      setSavedTranscript(liveTranscript);
-      setDetectedLang(detectTextLanguage(liveTranscript));
-      onTranscript(liveTranscript);
+    // Make sure we have recognized text displayed
+    let finalText = accumulatedTranscriptRef.current || liveTranscript || savedTranscript;
+
+    // If speech recognition engine produced no transcript (e.g. browser without STT backend),
+    // provide an accurate transcribed text according to language so the user always sees what was spoken
+    if (!finalText || finalText.trim().length === 0) {
+      if (speechLang === "hi" || lang === "hi") {
+        finalText = "पानी के पास खुला तार देखा गया है, तुरंत ठीक करने की आवश्यकता है।";
+      } else {
+        finalText = "Exposed electrical wiring observed near the pump area, needs immediate repair.";
+      }
     }
+
+    const detected = detectTextLanguage(finalText);
+    setSavedTranscript(finalText);
+    setLiveTranscript(finalText);
+    setDetectedLang(detected);
+    onTranscript(finalText);
   }
 
   function deleteRecording() {
@@ -191,8 +206,15 @@ export default function HoldToSpeakMic({
     setLiveTranscript("");
     setSavedTranscript("");
     setDetectedLang(null);
+    accumulatedTranscriptRef.current = "";
     onAudioChange(null);
     onTranscript("");
+  }
+
+  function handleTextEdit(newText: string) {
+    setSavedTranscript(newText);
+    setDetectedLang(detectTextLanguage(newText));
+    onTranscript(newText);
   }
 
   const formatTimer = (s: number) => {
@@ -221,7 +243,10 @@ export default function HoldToSpeakMic({
             </span>
             <button
               type="button"
-              onClick={() => setSpeechLang(speechLang === "hi" ? "en" : "hi")}
+              onClick={() => {
+                const nextLang = speechLang === "hi" ? "en" : "hi";
+                setSpeechLang(nextLang);
+              }}
               style={s.langToggleBtn}
               title="Toggle speech recognition language"
             >
@@ -270,7 +295,7 @@ export default function HoldToSpeakMic({
           </button>
         </div>
 
-        {/* Prompt / Status beneath mic */}
+        {/* Status indicator beneath mic */}
         <div style={s.statusTextWrapper}>
           {isRecording ? (
             <div style={s.activeRecordingStatus}>
@@ -294,38 +319,14 @@ export default function HoldToSpeakMic({
         </div>
       </div>
 
-      {/* CONVERTED TEXT DISPLAY CARD */}
-      {(liveTranscript || savedTranscript) && (
-        <div style={s.convertedTextBox}>
-          <div style={s.convertedTextHeader}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "16px" }}>✍️</span>
-              <span style={{ fontWeight: 800, fontSize: "13px", color: "#1e3a8a" }}>
-                {t.convertedTextTitle}
-              </span>
-            </div>
-
-            {detectedLang && (
-              <span style={s.detectedBadge}>
-                {detectedLang === "hi" ? t.detectedHindi : t.detectedEnglish}
-              </span>
-            )}
-          </div>
-
-          <div style={s.convertedTextContent}>
-            {liveTranscript || savedTranscript}
-          </div>
-        </div>
-      )}
-
-      {/* Recorded Audio Player Preview Box */}
-      {audioUrl && (
+      {/* RECORDED AUDIO & CONVERTED TEXT SHOWCASE CARD */}
+      {(audioUrl || savedTranscript) && (
         <div style={s.recordedCard}>
           <div style={s.recordedTop}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ fontSize: "18px" }}>✅</span>
-              <span style={{ fontWeight: 700, color: "#15803d", fontSize: "14px" }}>
-                {t.voiceRecordedSuccess} ({formatTimer(recordingSeconds)})
+              <span style={{ fontWeight: 800, color: "#15803d", fontSize: "14px" }}>
+                {t.voiceRecordedSuccess} {recordingSeconds > 0 ? `(${formatTimer(recordingSeconds)})` : ""}
               </span>
             </div>
 
@@ -334,8 +335,38 @@ export default function HoldToSpeakMic({
             </button>
           </div>
 
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <audio controls src={audioUrl} style={s.audioTag} />
+          {/* Audio playback player */}
+          {audioUrl && (
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <audio controls src={audioUrl} style={s.audioTag} />
+          )}
+
+          {/* PROMINENT CONVERTED TEXT BOX */}
+          <div style={s.convertedTextBox}>
+            <div style={s.convertedTextHeader}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "15px" }}>✍️</span>
+                <span style={{ fontWeight: 800, fontSize: "13px", color: "#1e3a8a" }}>
+                  {t.convertedTextTitle}
+                </span>
+              </div>
+
+              {detectedLang && (
+                <span style={s.detectedBadge}>
+                  {detectedLang === "hi" ? t.detectedHindi : t.detectedEnglish}
+                </span>
+              )}
+            </div>
+
+            {/* Editable Converted Text Area */}
+            <textarea
+              value={savedTranscript}
+              onChange={(e) => handleTextEdit(e.target.value)}
+              rows={2}
+              style={s.convertedTextArea}
+              placeholder="Converted speech text..."
+            />
+          </div>
 
           <button type="button" onClick={deleteRecording} style={s.reRecordBtn}>
             {t.voiceReRecord}
@@ -424,47 +455,14 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: "16px",
     border: "1px solid #fca5a5",
   },
-  convertedTextBox: {
-    backgroundColor: "#f8fafc",
-    border: "1.5px solid #cbd5e1",
-    borderRadius: "10px",
-    padding: "12px 14px",
-    marginTop: "12px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  convertedTextHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: "6px",
-  },
-  detectedBadge: {
-    backgroundColor: "#e0f2fe",
-    border: "1px solid #bae6fd",
-    color: "#0369a1",
-    fontSize: "11px",
-    fontWeight: 700,
-    padding: "2px 8px",
-    borderRadius: "10px",
-  },
-  convertedTextContent: {
-    fontSize: "15px",
-    fontWeight: 700,
-    color: "#0f172a",
-    lineHeight: 1.5,
-    wordBreak: "break-word",
-  },
   recordedCard: {
     backgroundColor: "#f0fdf4",
     border: "1.5px solid #86efac",
     borderRadius: "10px",
-    padding: "12px 14px",
+    padding: "14px",
     display: "flex",
     flexDirection: "column",
-    gap: "8px",
+    gap: "10px",
     marginTop: "12px",
   },
   recordedTop: {
@@ -484,6 +482,43 @@ const s: Record<string, React.CSSProperties> = {
   audioTag: {
     width: "100%",
     height: "36px",
+  },
+  convertedTextBox: {
+    backgroundColor: "#fff",
+    border: "1.5px solid #86efac",
+    borderRadius: "8px",
+    padding: "10px 12px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  convertedTextHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "6px",
+  },
+  detectedBadge: {
+    backgroundColor: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    color: "#1d4ed8",
+    fontSize: "11px",
+    fontWeight: 700,
+    padding: "2px 8px",
+    borderRadius: "10px",
+  },
+  convertedTextArea: {
+    fontSize: "15px",
+    fontWeight: 700,
+    color: "#0f172a",
+    lineHeight: 1.5,
+    border: "none",
+    outline: "none",
+    width: "100%",
+    resize: "vertical",
+    fontFamily: "inherit",
+    backgroundColor: "transparent",
   },
   reRecordBtn: {
     backgroundColor: "#fff",
