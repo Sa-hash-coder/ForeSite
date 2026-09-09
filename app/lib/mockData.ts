@@ -1,0 +1,283 @@
+/**
+ * MOCK DATA — Focused on worker-friendly danger levels and clear suggestions.
+ */
+
+import type { ReportSummary, ReportDetail, User } from "./api";
+
+export const MOCK_USER: User = {
+  _id: "64a1b2c3d4e5f6a7b8c9d001",
+  name: "Rajan Mehta",
+  email: "rajan@foresite.com",
+  role: "worker",
+  department: "Boiler Room B",
+};
+
+export interface WorkerReportDetail extends ReportDetail {
+  titleHi?: string;
+  descriptionHi?: string;
+  locationHi?: string;
+  suggestions?: string[];
+  suggestionsHi?: string[];
+}
+
+export const MOCK_REPORTS: (ReportSummary & { titleHi?: string; locationHi?: string })[] = [
+  {
+    _id: "64b2c3d4e5f6a7b8c9d0e001",
+    title: "Exposed electrical wiring near water pump",
+    titleHi: "पानी के पंप के पास बिजली का खुला तार",
+    location: "Sector 4, Water Treatment Plant",
+    locationHi: "सेक्टर 4, वाटर ट्रीटमेंट प्लांट",
+    category: "unsafe_condition",
+    severity: "critical",
+    status: "action_assigned",
+    riskAssessment: { riskScore: 90, riskLevel: "CRITICAL", sifProbability: 0.85 },
+    createdAt: "2026-09-05T09:15:00Z",
+  },
+  {
+    _id: "64b2c3d4e5f6a7b8c9d0e002",
+    title: "Worker not wearing harness on elevated platform",
+    titleHi: "ऊंचाई पर बिना सेफ्टी बेल्ट (हार्नेस) काम",
+    location: "Building C, Level 3",
+    locationHi: "बिल्डिंग C, लेवल 3",
+    category: "unsafe_act",
+    severity: "high",
+    status: "action_assigned",
+    riskAssessment: { riskScore: 78, riskLevel: "HIGH", sifProbability: 0.74 },
+    createdAt: "2026-09-04T14:30:00Z",
+  },
+  {
+    _id: "64b2c3d4e5f6a7b8c9d0e003",
+    title: "Chemical leak detected near storage tanks",
+    titleHi: "केमिकल टैंक के पास पीले तरल का रिसाव",
+    location: "Chemical Storage Area",
+    locationHi: "केमिकल स्टोरेज एरिया",
+    category: "chemical_exposure",
+    severity: "high",
+    status: "under_review",
+    riskAssessment: { riskScore: 72, riskLevel: "HIGH", sifProbability: 0.65 },
+    createdAt: "2026-09-03T11:00:00Z",
+  },
+  {
+    _id: "64b2c3d4e5f6a7b8c9d0e004",
+    title: "Forklift operating in pedestrian zone without barriers",
+    titleHi: "पैदल रास्ते में बिना बैरिकेड के फोर्कलिफ्ट",
+    location: "Main Warehouse Corridor",
+    locationHi: "मुख्य वेयरहाउस गलियारा",
+    category: "unsafe_condition",
+    severity: "medium",
+    status: "analysis_complete",
+    riskAssessment: { riskScore: 55, riskLevel: "MEDIUM", sifProbability: 0.45 },
+    createdAt: "2026-09-02T09:45:00Z",
+  },
+  {
+    _id: "64b2c3d4e5f6a7b8c9d0e005",
+    title: "Wet floor near staircase without warning signs",
+    titleHi: "सीढ़ियों के पास पानी का फिसलन भरा फर्श",
+    location: "Block D, Ground Floor",
+    locationHi: "ब्लॉक D, ग्राउंड फ्लोर",
+    category: "unsafe_condition",
+    severity: "low",
+    status: "resolved",
+    riskAssessment: { riskScore: 25, riskLevel: "LOW", sifProbability: 0.15 },
+    createdAt: "2026-09-01T16:20:00Z",
+  },
+];
+
+export const MOCK_REPORT_DETAIL: Record<string, WorkerReportDetail> = {
+  "64b2c3d4e5f6a7b8c9d0e001": {
+    _id: "64b2c3d4e5f6a7b8c9d0e001",
+    title: "Exposed electrical wiring near water pump",
+    titleHi: "पानी के पंप के पास बिजली का खुला तार",
+    description:
+      "Found stripped bare electrical wiring near the water pump. Water is nearby on the floor. Extreme risk of shock.",
+    descriptionHi:
+      "पानी के पंप के पास बिजली का तार छिला हुआ खुला पड़ा है। पास में फर्श पर पानी भी है। करंट लगने का गंभीर ख़तरा है।",
+    location: "Sector 4, Water Treatment Plant",
+    locationHi: "सेक्टर 4, वाटर ट्रीटमेंट प्लांट",
+    category: "unsafe_condition",
+    severity: "critical",
+    status: "action_assigned",
+    submittedBy: { _id: "64a1", name: "Rajan Mehta", department: "Boiler Room B" },
+    riskAssessment: {
+      riskScore: 90,
+      riskLevel: "CRITICAL",
+      sifProbability: 0.85,
+      precursors: [],
+      hazards: [],
+      explanation: "",
+    },
+    suggestions: [
+      "🚫 DO NOT touch the wire or step into wet areas nearby.",
+      "🛑 Keep a safe distance of at least 5 meters.",
+      "⚠️ Put up red danger tape or alert others in the area.",
+      "⚡ Electrical team is shutting down the main switch right now.",
+    ],
+    suggestionsHi: [
+      "🚫 तार को बिल्कुल न छुएं और पास में गीले फर्श पर पैर न रखें।",
+      "🛑 कम से कम 5 मीटर की सुरक्षित दूरी बनाए रखें।",
+      "⚠️ आसपास के अन्य साथियों को तुरंत सावधान करें।",
+      "⚡ इलेक्ट्रीशियन टीम मेन स्विच बंद करके मरम्मत कर रही है।",
+    ],
+    maintenanceTasks: [
+      {
+        _id: "t001",
+        title: "Isolate circuit breaker and replace cable with insulated conduit",
+        status: "in_progress",
+        assignedTo: { name: "Vikram Singh (Electrician)" },
+        dueDate: "2026-09-06T17:00:00Z",
+      },
+    ],
+    createdAt: "2026-09-05T09:15:00Z",
+    updatedAt: "2026-09-05T09:15:45Z",
+  },
+  "64b2c3d4e5f6a7b8c9d0e002": {
+    _id: "64b2c3d4e5f6a7b8c9d0e002",
+    title: "Worker not wearing harness on elevated platform",
+    titleHi: "ऊंचाई पर बिना सेफ्टी बेल्ट (हार्नेस) काम",
+    description: "Worker was working near the ledge at 8 meters height without wearing a safety harness.",
+    descriptionHi: "8 मीटर की ऊंचाई पर बिना सुरक्षा हार्नेस/बेल्ट के किनारे पर काम किया जा रहा था।",
+    location: "Building C, Level 3",
+    locationHi: "बिल्डिंग C, लेवल 3",
+    category: "unsafe_act",
+    severity: "high",
+    status: "action_assigned",
+    submittedBy: { _id: "64a2", name: "Priya Nair", department: "Quality Control" },
+    riskAssessment: {
+      riskScore: 78,
+      riskLevel: "HIGH",
+      sifProbability: 0.74,
+      precursors: [],
+      hazards: [],
+      explanation: "",
+    },
+    suggestions: [
+      "🛑 Stop work at height until full-body harness is worn and hooked.",
+      "🪝 Always hook the safety lanyard to a solid overhead anchor point.",
+      "👷 Wear your safety helmet with chin strap securely fastened.",
+    ],
+    suggestionsHi: [
+      "🛑 जब तक फुल-बॉडी सेफ्टी बेल्ट न पहनें, ऊंचाई पर काम तुरंत रोकें।",
+      "🪝 सेफ्टी रस्सी को हमेशा मजबूत ऊपरी पाइप/एंकर से लॉक करें।",
+      "👷 हेलमेट का स्ट्रैप कसकर बांधकर ही ऊपर जाएं।",
+    ],
+    maintenanceTasks: [
+      {
+        _id: "t002",
+        title: "Provide safety harnesses and install safety lifeline cable",
+        status: "in_progress",
+        assignedTo: { name: "Safety Supervisor" },
+        dueDate: "2026-09-05T12:00:00Z",
+      },
+    ],
+    createdAt: "2026-09-04T14:30:00Z",
+    updatedAt: "2026-09-04T14:31:00Z",
+  },
+  "64b2c3d4e5f6a7b8c9d0e003": {
+    _id: "64b2c3d4e5f6a7b8c9d0e003",
+    title: "Chemical leak detected near storage tanks",
+    titleHi: "केमिकल टैंक के पास पीले तरल का रिसाव",
+    description: "Yellow chemical puddle near Tank 7. Strong pungent smell noticed in the area.",
+    descriptionHi: "टैंक 7 के पास पीले रंग का रासायनिक घोल बह रहा है। तेज़ गंध आ रही है।",
+    location: "Chemical Storage Area",
+    locationHi: "केमिकल स्टोरेज एरिया",
+    category: "chemical_exposure",
+    severity: "high",
+    status: "under_review",
+    submittedBy: { _id: "64a3", name: "Suresh Kumar", department: "Chemical Processing" },
+    riskAssessment: {
+      riskScore: 72,
+      riskLevel: "HIGH",
+      sifProbability: 0.65,
+      precursors: [],
+      hazards: [],
+      explanation: "",
+    },
+    suggestions: [
+      "😷 Wear a chemical respirator mask and rubber gloves.",
+      "🚪 Keep the area well ventilated — do not stay in closed room.",
+      "🚫 Do not touch or attempt to mop with ordinary water.",
+    ],
+    suggestionsHi: [
+      "😷 केमिकल मास्क और रबर के दस्ताने पहनें।",
+      "🚪 इलाके को खुला रखें — बंद कमरे में सांस लेने से बचें।",
+      "🚫 तरल को बिना सुरक्षा उपकरणों के हाथ न लगाएं।",
+    ],
+    maintenanceTasks: [],
+    createdAt: "2026-09-03T11:00:00Z",
+    updatedAt: "2026-09-03T11:01:00Z",
+  },
+  "64b2c3d4e5f6a7b8c9d0e004": {
+    _id: "64b2c3d4e5f6a7b8c9d0e004",
+    title: "Forklift operating in pedestrian zone without barriers",
+    titleHi: "पैदल रास्ते में बिना बैरिकेड के फोर्कलिफ्ट",
+    description: "Forklift moving in walking lane without safety cones or warning horns.",
+    descriptionHi: "पैदल चलने वाले रास्ते में बिना किसी रुकावट या हॉर्न के भारी फोर्कलिफ्ट चल रही है।",
+    location: "Main Warehouse Corridor",
+    locationHi: "मुख्य वेयरहाउस गलियारा",
+    category: "unsafe_condition",
+    severity: "medium",
+    status: "analysis_complete",
+    submittedBy: { _id: "64a1", name: "Rajan Mehta", department: "Boiler Room B" },
+    riskAssessment: {
+      riskScore: 55,
+      riskLevel: "MEDIUM",
+      sifProbability: 0.45,
+      precursors: [],
+      hazards: [],
+      explanation: "",
+    },
+    suggestions: [
+      "🦺 Wear high-visibility neon reflective vest at all times.",
+      "🚶 Walk strictly inside the painted yellow walkway line.",
+      "👀 Make direct eye contact with the forklift driver before crossing.",
+    ],
+    suggestionsHi: [
+      "🦺 हमेशा चमकीली नियॉन जैकेट (रिफ्लेक्टिव वेस्ट) पहनें।",
+      "🚶 केवल पीली लाइन वाले सुरक्षित पैदल रास्ते पर ही चलें।",
+      "👀 रास्ता पार करने से पहले ड्राइवर की नज़र देखकर ही आगे बढ़ें।",
+    ],
+    maintenanceTasks: [],
+    createdAt: "2026-09-02T09:45:00Z",
+    updatedAt: "2026-09-02T09:46:00Z",
+  },
+  "64b2c3d4e5f6a7b8c9d0e005": {
+    _id: "64b2c3d4e5f6a7b8c9d0e005",
+    title: "Wet floor near staircase without warning signs",
+    titleHi: "सीढ़ियों के पास पानी का फिसलन भरा फर्श",
+    description: "Water on tiles near staircase. Slippery surface.",
+    descriptionHi: "सीढ़ियों के पास फर्श पर पानी गिरा हुआ है। फिसलने का ख़तरा है।",
+    location: "Block D, Ground Floor",
+    locationHi: "ब्लॉक D, ग्राउंड फ्लोर",
+    category: "unsafe_condition",
+    severity: "low",
+    status: "resolved",
+    submittedBy: { _id: "64a4", name: "Meena Sharma", department: "Administration" },
+    riskAssessment: {
+      riskScore: 25,
+      riskLevel: "LOW",
+      sifProbability: 0.15,
+      precursors: [],
+      hazards: [],
+      explanation: "",
+    },
+    suggestions: [
+      "⚠️ Walk slowly and hold the staircase railing.",
+      "🧹 Floor has been cleaned and warning sign is now placed.",
+    ],
+    suggestionsHi: [
+      "⚠️ सीढ़ियों की रेलिंग पकड़कर धीरे-धीरे चलें।",
+      "🧹 फर्श साफ़ कर दिया गया है और चेतावनी बोर्ड लगा दिया गया है।",
+    ],
+    maintenanceTasks: [
+      {
+        _id: "t003",
+        title: "Clean water and place yellow caution sign",
+        status: "verified",
+        assignedTo: { name: "Cleaning Staff" },
+        dueDate: "2026-09-01T17:30:00Z",
+      },
+    ],
+    createdAt: "2026-09-01T16:20:00Z",
+    updatedAt: "2026-09-01T17:00:00Z",
+  },
+};
