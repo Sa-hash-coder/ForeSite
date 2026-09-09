@@ -1,623 +1,326 @@
 "use client";
 
+/**
+ * HoldToSpeakMic — Brave/Firefox/Chrome compatible voice recorder.
+ *
+ * Uses MediaRecorder (works in all browsers including Brave) to capture audio,
+ * then sends to /api/transcribe which uses Groq Whisper large-v3.
+ * No browser Speech API is used — zero privacy-blocking issues.
+ */
+
 import React, { useState, useRef, useEffect } from "react";
 import { useLanguage } from "@/app/lib/LanguageContext";
 
-interface HoldToSpeakMicProps {
+interface Props {
   onAudioChange: (base64Audio: string | null) => void;
   onTranscript: (text: string) => void;
 }
 
-interface IWindow extends Window {
-  SpeechRecognition?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  webkitSpeechRecognition?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-}
+type Phase = "idle" | "recording" | "transcribing" | "done";
 
-export default function HoldToSpeakMic({
-  onAudioChange,
-  onTranscript,
-}: HoldToSpeakMicProps) {
+export default function HoldToSpeakMic({ onAudioChange, onTranscript }: Props) {
   const { lang, t } = useLanguage();
+
   const [speechLang, setSpeechLang] = useState<"hi" | "en">(lang === "hi" ? "hi" : "en");
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [liveTranscript, setLiveTranscript] = useState("");
-  const [savedTranscript, setSavedTranscript] = useState("");
-  const [detectedLang, setDetectedLang] = useState<"hi" | "en" | null>(null);
-  const [micError, setMicError] = useState<string | null>(null);
+  const [phase, setPhase]           = useState<Phase>("idle");
+  const [seconds, setSeconds]       = useState(0);
+  const [audioUrl, setAudioUrl]     = useState<string | null>(null);
+  const [transcript, setTranscript] = useState("");
+  const [detLang, setDetLang]       = useState<"hi" | "en" | null>(null);
+  const [errMsg, setErrMsg]         = useState<string | null>(null);
+  const [noKey, setNoKey]           = useState(false);
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
-  const isHeldRef = useRef(false);
-  const transcriptBufferRef = useRef("");
-  const streamRef = useRef<MediaStream | null>(null);
+  const speechLangR = useRef(speechLang);
+  const timerR      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mrRef       = useRef<MediaRecorder | null>(null);
+  const chunksRef   = useRef<Blob[]>([]);
 
-  // Sync speech recognition language with global app language when changed
-  useEffect(() => {
-    setSpeechLang(lang === "hi" ? "hi" : "en");
-  }, [lang]);
+  useEffect(() => { speechLangR.current = speechLang; }, [speechLang]);
+  useEffect(() => { setSpeechLang(lang === "hi" ? "hi" : "en"); }, [lang]);
+  useEffect(() => () => { cleanup(); }, []); // eslint-disable-line
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch {
-          // ignore
-        }
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, []);
+  function isHindi(s: string) { return /[\u0900-\u097F]/.test(s); }
+  function fmt(s: number) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
 
-  // Helper to detect if transcribed string contains Hindi Devanagari script
-  function detectTextLanguage(text: string): "hi" | "en" {
-    const hasDevanagari = /[\u0900-\u097F]/.test(text);
-    return hasDevanagari ? "hi" : "en";
+  function cleanup() {
+    if (timerR.current) { clearInterval(timerR.current); timerR.current = null; }
+    if (mrRef.current && mrRef.current.state !== "inactive") {
+      try { mrRef.current.stop(); } catch { /* ok */ }
+    }
   }
 
-  async function startRecording() {
-    if (isHeldRef.current || isRecording) return;
-    isHeldRef.current = true;
-    setIsRecording(true);
-    setIsProcessing(false);
-    setMicError(null);
-    setLiveTranscript("");
-    transcriptBufferRef.current = "";
+  // ─── Send audio blob → /api/transcribe → get text ───────────
+  async function transcribeAudio(blob: Blob): Promise<string> {
+    const fd = new FormData();
+    // Groq Whisper needs a named file with audio extension
+    fd.append("audio", new File([blob], "recording.webm", { type: blob.type || "audio/webm" }));
+    fd.append("lang", speechLangR.current);
 
-    // 1. Initialize & Start Web Speech Recognition directly
-    if (typeof window !== "undefined") {
-      const win = window as unknown as IWindow;
-      const SpeechRecognitionClass =
-        win.SpeechRecognition || win.webkitSpeechRecognition;
+    const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+    const json = await res.json();
 
-      if (SpeechRecognitionClass) {
-        try {
-          const recognition = new SpeechRecognitionClass();
-          recognitionRef.current = recognition;
-          recognition.continuous = true;
-          recognition.interimResults = true;
-          recognition.maxAlternatives = 1;
-          recognition.lang = speechLang === "hi" ? "hi-IN" : "en-IN";
-
-          recognition.onresult = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-            let accumulated = "";
-            for (let i = 0; i < event.results.length; ++i) {
-              const text = event.results[i][0]?.transcript || "";
-              accumulated += text + " ";
-            }
-            const cleanText = accumulated.trim();
-            if (cleanText) {
-              transcriptBufferRef.current = cleanText;
-              setLiveTranscript(cleanText);
-              setSavedTranscript(cleanText);
-              setDetectedLang(detectTextLanguage(cleanText));
-              onTranscript(cleanText);
-            }
-          };
-
-          recognition.onerror = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-            console.warn("Speech recognition notice:", event?.error);
-            if (event?.error === "not-allowed") {
-              setMicError(t.errMicPermission);
-            }
-          };
-
-          recognition.onend = () => {
-            const final = transcriptBufferRef.current.trim();
-            if (final) {
-              setSavedTranscript(final);
-              setDetectedLang(detectTextLanguage(final));
-              onTranscript(final);
-            }
-            setIsProcessing(false);
-          };
-
-          recognition.start();
-        } catch (err) {
-          console.warn("Speech recognition initialization:", err);
-        }
+    if (!res.ok) {
+      if (json.error?.includes("GROQ_API_KEY")) {
+        setNoKey(true);
       }
+      throw new Error(json.error || "Transcription failed");
     }
+    return (json.text as string) || "";
+  }
 
-    // 2. Start MediaRecorder for Audio Note
+  // ─── Start recording ─────────────────────────────────────────
+  async function startRecording() {
+    if (phase === "recording" || phase === "transcribing") return;
+
+    setErrMsg(null);
+    setTranscript("");
+    setAudioUrl(null);
+    setDetLang(null);
+    chunksRef.current = [];
+
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      audioChunksRef.current = [];
-
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        const localUrl = URL.createObjectURL(audioBlob);
-        setAudioUrl(localUrl);
-
-        // Convert to base64 Data URI
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result as string;
-          onAudioChange(base64);
-        };
-        reader.readAsDataURL(audioBlob);
-
-        // Release mic stream
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach((track) => track.stop());
-          streamRef.current = null;
-        }
-      };
-
-      mediaRecorder.start();
-      setRecordingSeconds(0);
-
-      timerRef.current = setInterval(() => {
-        setRecordingSeconds((prev) => prev + 1);
-      }, 1000);
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      setMicError(t.errMicPermission);
-      isHeldRef.current = false;
-      setIsRecording(false);
+      setErrMsg(lang === "hi"
+        ? "माइक की अनुमति दें — Brave में 🦁 आइकन → Site Settings → Mic → Allow"
+        : "Mic blocked — click the 🦁 icon in Brave address bar → Site Settings → Microphone → Allow");
       return;
     }
+
+    const mr = new MediaRecorder(stream, { mimeType: getSupportedMime() });
+    mrRef.current = mr;
+    mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+
+    mr.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+
+      const blob = new Blob(chunksRef.current, { type: mr.mimeType });
+      const url  = URL.createObjectURL(blob);
+      setAudioUrl(url);
+
+      // base64 for parent component
+      const fr = new FileReader();
+      fr.onloadend = () => onAudioChange(fr.result as string);
+      fr.readAsDataURL(blob);
+
+      // ── Transcribe ───────────────────────────────────────────
+      setPhase("transcribing");
+      try {
+        const text = await transcribeAudio(blob);
+        if (text) {
+          setTranscript(text);
+          setDetLang(isHindi(text) ? "hi" : "en");
+          onTranscript(text);
+        }
+        setPhase("done");
+      } catch (err) {
+        console.error(err);
+        setErrMsg(err instanceof Error ? err.message : "Transcription failed");
+        setPhase("done");
+      }
+    };
+
+    mr.start(500);
+    setPhase("recording");
+    setSeconds(0);
+    timerR.current = setInterval(() => setSeconds((s) => s + 1), 1000);
   }
 
+  // ─── Stop recording ──────────────────────────────────────────
   function stopRecording() {
-    if (!isHeldRef.current && !isRecording) return;
-    isHeldRef.current = false;
-    setIsRecording(false);
-    setIsProcessing(true);
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    // Stop MediaRecorder
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch {
-        // ignore
-      }
-    }
-
-    // Gently stop Speech Recognition so it flushes the final audio buffer to Google STT server
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch {
-        // ignore
-      }
-    }
-
-    // Set a safety timeout to clear processing state
-    setTimeout(() => {
-      setIsProcessing(false);
-      const finalVal = transcriptBufferRef.current.trim() || liveTranscript.trim();
-      if (finalVal) {
-        setSavedTranscript(finalVal);
-        setDetectedLang(detectTextLanguage(finalVal));
-        onTranscript(finalVal);
-      }
-    }, 1200);
-  }
-
-  function toggleClickToRecord() {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
+    if (phase !== "recording") return;
+    cleanup();
+    // onstop fires → transcription begins
+    if (mrRef.current && mrRef.current.state !== "inactive") {
+      mrRef.current.stop();
     }
   }
 
+  // ─── Delete ──────────────────────────────────────────────────
   function deleteRecording() {
-    setAudioUrl(null);
-    setRecordingSeconds(0);
-    setLiveTranscript("");
-    setSavedTranscript("");
-    setDetectedLang(null);
-    setIsProcessing(false);
-    transcriptBufferRef.current = "";
-    onAudioChange(null);
-    onTranscript("");
+    cleanup();
+    setPhase("idle");
+    setTranscript(""); setAudioUrl(null); setDetLang(null); setSeconds(0);
+    onAudioChange(null); onTranscript("");
   }
 
-  function handleTextEdit(newText: string) {
-    setSavedTranscript(newText);
-    setDetectedLang(detectTextLanguage(newText));
-    onTranscript(newText);
+  // ─── Pick best supported audio MIME type ─────────────────────
+  function getSupportedMime(): string {
+    const types = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"];
+    return types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
   }
 
-  const formatTimer = (s: number) => {
-    const mins = Math.floor(s / 60);
-    const rem = s % 60;
-    return `${mins}:${rem < 10 ? "0" : ""}${rem}`;
-  };
+  // ─────────────────────────────────────────────────────────────
+  const isRec          = phase === "recording";
+  const isTranscribing = phase === "transcribing";
+  const isDone         = phase === "done";
 
   return (
-    <div style={s.card}>
-      <div style={s.headerBox}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "8px" }}>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: "16px", color: "var(--text)" }}>
-              {t.voiceMainTitle}
-            </div>
-            <div style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "2px" }}>
-              {t.voiceMainSubtitle}
-            </div>
-          </div>
+    <div style={S.card}>
 
-          {/* Speech Recognition Language Switcher */}
-          <div style={s.langPillWrapper}>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>
-              {t.speakingLanguage}
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                const nextLang = speechLang === "hi" ? "en" : "hi";
-                setSpeechLang(nextLang);
-              }}
-              style={s.langToggleBtn}
-              title="Toggle speech recognition language"
-            >
-              {speechLang === "hi" ? "🇮🇳 हिंदी (Hindi)" : "🇬🇧 English"}
-            </button>
-          </div>
+      {/* Header */}
+      <div style={S.row}>
+        <div>
+          <div style={S.title}>{t.voiceMainTitle}</div>
+          <div style={S.sub}>{t.voiceMainSubtitle}</div>
         </div>
+        <button
+          type="button"
+          disabled={isRec || isTranscribing}
+          onClick={() => setSpeechLang((l) => l === "hi" ? "en" : "hi")}
+          style={S.langBtn}
+        >
+          {speechLang === "hi" ? "🇮🇳 हिंदी" : "🇬🇧 English"}
+        </button>
       </div>
 
-      {micError && <div style={s.errorBox}>⚠️ {micError}</div>}
+      {/* API key missing warning */}
+      {noKey && (
+        <div style={{ ...S.err, background: "#fff7ed", borderColor: "#fdba74", color: "#9a3412" }}>
+          ⚙️ {lang === "hi"
+            ? "GROQ_API_KEY नहीं मिली। .env.local में GROQ_API_KEY=gsk_... add करें और server restart करें।"
+            : "GROQ_API_KEY missing. Add GROQ_API_KEY=gsk_... to .env.local and restart the server."}
+        </div>
+      )}
 
-      {/* Main Mic Section */}
-      <div style={s.micArea}>
-        {/* Round Hold/Tap-To-Speak Button */}
-        <div style={s.btnWrapper}>
-          <button
-            type="button"
-            onClick={toggleClickToRecord}
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              startRecording();
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              stopRecording();
-            }}
-            style={{
-              ...s.roundBtn,
-              backgroundColor: isRecording ? "#dc2626" : "#1d4ed8",
-              boxShadow: isRecording
-                ? "0 0 0 14px rgba(220, 38, 38, 0.25), 0 6px 18px rgba(220, 38, 38, 0.45)"
-                : "0 0 0 8px rgba(29, 78, 216, 0.15), 0 4px 14px rgba(29, 78, 216, 0.3)",
-              transform: isRecording ? "scale(1.1)" : "scale(1)",
-            }}
-            aria-label="Microphone"
-          >
-            <span style={{ fontSize: "38px", userSelect: "none" }}>
-              {isRecording ? "🔴" : "🎙️"}
+      {/* Error */}
+      {errMsg && !noKey && <div style={S.err}>⚠️ {errMsg}</div>}
+
+      {/* Big round button */}
+      <div style={S.col}>
+        <button
+          type="button"
+          onClick={isRec ? stopRecording : isTranscribing ? undefined : isDone ? deleteRecording : startRecording}
+          disabled={isTranscribing}
+          style={{
+            ...S.micBtn,
+            background: isRec ? "#dc2626" : isTranscribing ? "#7c3aed" : isDone ? "#1d4ed8" : "#1d4ed8",
+            boxShadow: isRec
+              ? "0 0 0 18px rgba(220,38,38,0.15), 0 6px 24px rgba(220,38,38,0.4)"
+              : isTranscribing
+              ? "0 0 0 18px rgba(124,58,237,0.15), 0 6px 24px rgba(124,58,237,0.4)"
+              : "0 0 0 10px rgba(29,78,216,0.12), 0 4px 16px rgba(29,78,216,0.3)",
+            transform: (isRec || isTranscribing) ? "scale(1.08)" : "scale(1)",
+            cursor: isTranscribing ? "wait" : "pointer",
+          }}
+          aria-label="microphone"
+        >
+          <span style={{ fontSize: 38, lineHeight: 1 }}>
+            {isRec ? "⏹️" : isTranscribing ? "⏳" : isDone ? "🔄" : "🎙️"}
+          </span>
+        </button>
+
+        {/* Status */}
+        {isRec && (
+          <div style={S.col}>
+            <span style={S.pill}>🔴 {fmt(seconds)}</span>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#b91c1c", textAlign: "center" }}>
+              {lang === "hi" ? "रिकॉर्ड हो रहा है — बोलते रहें" : "Recording — keep speaking"}
+            </div>
+            <div style={{ fontSize: 12, color: "#b91c1c" }}>
+              {lang === "hi" ? "बोलना खत्म हो जाए तो ⏹ दबाएं" : "Tap ⏹ when done"}
+            </div>
+          </div>
+        )}
+
+        {isTranscribing && (
+          <div style={S.col}>
+            <span style={{ ...S.pill, background: "#ede9fe", color: "#5b21b6", borderColor: "#c4b5fd" }}>
+              ⏳ {lang === "hi" ? "AI text बना रहा है…" : "AI is converting…"}
             </span>
-          </button>
-        </div>
+            <div style={{ fontSize: 13, color: "#7c3aed", fontWeight: 600 }}>
+              {lang === "hi" ? "Whisper AI सुन रहा है — 10-15 सेकंड" : "Whisper AI processing — 10–15 sec"}
+            </div>
+          </div>
+        )}
 
-        {/* Status text */}
-        <div style={s.statusTextWrapper}>
-          {isRecording ? (
-            <div style={s.activeRecordingStatus}>
-              <span style={s.pulsingBadge}>
-                {t.voiceRecordingTimer}: {formatTimer(recordingSeconds)}
-              </span>
-              <span style={{ fontSize: "14px", fontWeight: 800, color: "#b91c1c" }}>
-                {t.voiceListeningNow}
-              </span>
-              <button
-                type="button"
-                onClick={stopRecording}
-                style={s.stopSpeakingBtn}
-              >
-                ⏹️ {lang === "hi" ? "बोलना पूरा हुआ (Done)" : "Finish Speaking (Done)"}
-              </button>
-            </div>
-          ) : isProcessing ? (
-            <div style={s.processingStatus}>
-              <span style={{ fontSize: "14px", fontWeight: 700, color: "#1d4ed8" }}>
-                ⏳ {lang === "hi" ? "आवाज़ से टेक्स्ट बनाया जा रहा है..." : "Converting your speech to text..."}
-              </span>
-            </div>
-          ) : (
-            <div style={s.idleStatus}>
-              <span style={{ fontSize: "15px", fontWeight: 800, color: "var(--text)" }}>
-                {lang === "hi" ? "माइक दबाएं और बोलें (Tap or Hold to Speak)" : "Tap or Hold to Speak"}
-              </span>
-              <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                {lang === "hi" ? "बोलने के बाद 'Done' दबाएं या बटन छोड़ें" : "Release button or tap Done when finished"}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* RECORDED AUDIO & GENUINE LIVE CONVERTED TEXT SHOWCASE */}
-      {(audioUrl || savedTranscript || liveTranscript) && (
-        <div style={s.recordedCard}>
-          <div style={s.recordedTop}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "18px" }}>✅</span>
-              <span style={{ fontWeight: 800, color: "#15803d", fontSize: "14px" }}>
-                {t.voiceRecordedSuccess} {recordingSeconds > 0 ? `(${formatTimer(recordingSeconds)})` : ""}
-              </span>
-            </div>
-
-            <button type="button" onClick={deleteRecording} style={s.deleteBtn}>
-              {t.voiceDelete}
+        {isDone && !isTranscribing && (
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#15803d", textAlign: "center" }}>
+            ✅ {t.voiceRecordedSuccess} ({fmt(seconds)})
+            <br />
+            <button type="button" onClick={deleteRecording} style={{ ...S.del, fontSize: 13, marginTop: 4 }}>
+              🔄 {lang === "hi" ? "दोबारा बोलें" : "Re-record"}
             </button>
           </div>
+        )}
 
-          {/* Audio playback player */}
-          {audioUrl && (
-            // eslint-disable-next-line jsx-a11y/media-has-caption
-            <audio controls src={audioUrl} style={s.audioTag} />
-          )}
+        {phase === "idle" && (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: "var(--text)" }}>
+              {lang === "hi" ? "🎙️ दबाएं और बोलें" : "🎙️ Tap & Speak"}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>
+              {lang === "hi" ? "Brave, Chrome, Firefox — सब में काम करता है" : "Works in Brave, Chrome & Firefox"}
+            </div>
+          </div>
+        )}
+      </div>
 
-          {/* REAL TRANSCRIBED TEXT BOX */}
-          <div style={s.convertedTextBox}>
-            <div style={s.convertedTextHeader}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ fontSize: "15px" }}>✍️</span>
-                <span style={{ fontWeight: 800, fontSize: "13px", color: "#1e3a8a" }}>
-                  {t.convertedTextTitle}
-                </span>
+      {/* Done result */}
+      {(isDone || isTranscribing) && (
+        <div style={S.doneCard}>
+          {audioUrl && !isTranscribing && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontWeight: 800, fontSize: 14, color: "#15803d" }}>✅ {t.voiceRecordedSuccess}</span>
+                <button type="button" onClick={deleteRecording} style={S.del}>{t.voiceDelete}</button>
               </div>
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <audio controls src={audioUrl} style={{ width: "100%", height: 36 }} />
+            </>
+          )}
 
-              {detectedLang && (
-                <span style={s.detectedBadge}>
-                  {detectedLang === "hi" ? t.detectedHindi : t.detectedEnglish}
+          {/* Transcript */}
+          <div style={S.txBox}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontWeight: 800, fontSize: 13, color: "#1e3a8a" }}>✍️ {t.convertedTextTitle}</span>
+              {detLang && !isTranscribing && (
+                <span style={S.badge}>
+                  {detLang === "hi" ? "🇮🇳 " + t.detectedHindi : "🇬🇧 " + t.detectedEnglish}
                 </span>
               )}
             </div>
 
-            {savedTranscript || liveTranscript ? (
-              <textarea
-                value={savedTranscript || liveTranscript}
-                onChange={(e) => handleTextEdit(e.target.value)}
-                rows={2}
-                style={s.convertedTextArea}
-                placeholder="Transcribed text..."
-              />
-            ) : isProcessing ? (
-              <div style={s.processingText}>
-                ⏳ {lang === "hi" ? "टेक्स्ट तैयार हो रहा है..." : "Transcribing your words..."}
+            {isTranscribing ? (
+              <div style={{ fontSize: 13, color: "#7c3aed", fontWeight: 600 }}>
+                {lang === "hi" ? "⏳ Whisper AI text बना रहा है…" : "⏳ Whisper AI is transcribing your audio…"}
               </div>
+            ) : transcript ? (
+              <textarea
+                value={transcript}
+                rows={3}
+                onChange={(e) => { setTranscript(e.target.value); onTranscript(e.target.value); }}
+                style={S.ta}
+                placeholder={lang === "hi" ? "यहाँ सुधार सकते हैं…" : "Edit if needed…"}
+              />
             ) : (
-              <div style={s.noSpeechWarning}>
+              <div style={{ fontSize: 13, color: "#6b7280", fontStyle: "italic" }}>
                 {lang === "hi"
-                  ? "⚠️ आवाज़ स्पष्ट नहीं सुनाई दी। आप सीधे नीचे लिख भी सकते हैं या दोबारा बोल सकते हैं।"
-                  : "⚠️ No speech detected. Please speak closer to the mic or type below."}
+                  ? "⚠️ आवाज़ नहीं पकड़ी। दोबारा बोलें या नीचे टाइप करें।"
+                  : "⚠️ No speech in audio. Try again or type below."}
               </div>
             )}
           </div>
-
-          <button type="button" onClick={deleteRecording} style={s.reRecordBtn}>
-            {t.voiceReRecord}
-          </button>
         </div>
       )}
     </div>
   );
 }
 
-const s: Record<string, React.CSSProperties> = {
-  card: {
-    backgroundColor: "#fff",
-    border: "2px solid #3b82f6",
-    borderRadius: "12px",
-    padding: "18px 16px",
-    boxShadow: "0 2px 8px rgba(59, 130, 246, 0.08)",
-  },
-  headerBox: {
-    marginBottom: "12px",
-  },
-  langPillWrapper: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  },
-  langToggleBtn: {
-    backgroundColor: "#eff6ff",
-    border: "1px solid #bfdbfe",
-    borderRadius: "14px",
-    padding: "3px 10px",
-    fontSize: "12px",
-    fontWeight: 700,
-    color: "#1d4ed8",
-    cursor: "pointer",
-  },
-  micArea: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "14px 0 8px 0",
-    gap: "12px",
-  },
-  btnWrapper: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  roundBtn: {
-    width: "92px",
-    height: "92px",
-    borderRadius: "50%",
-    border: "none",
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
-    outline: "none",
-    WebkitTapHighlightColor: "transparent",
-    touchAction: "manipulation",
-  },
-  statusTextWrapper: {
-    textAlign: "center",
-  },
-  idleStatus: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "2px",
-  },
-  activeRecordingStatus: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "8px",
-  },
-  processingStatus: {
-    padding: "6px 12px",
-    backgroundColor: "#eff6ff",
-    borderRadius: "12px",
-    border: "1px solid #bfdbfe",
-  },
-  stopSpeakingBtn: {
-    backgroundColor: "#dc2626",
-    color: "#fff",
-    border: "none",
-    borderRadius: "20px",
-    padding: "6px 16px",
-    fontSize: "13px",
-    fontWeight: 700,
-    cursor: "pointer",
-    marginTop: "4px",
-    boxShadow: "0 2px 4px rgba(220, 38, 38, 0.3)",
-  },
-  pulsingBadge: {
-    backgroundColor: "#fee2e2",
-    color: "#991b1b",
-    fontSize: "13px",
-    fontWeight: 800,
-    padding: "3px 12px",
-    borderRadius: "16px",
-    border: "1px solid #fca5a5",
-  },
-  recordedCard: {
-    backgroundColor: "#f0fdf4",
-    border: "1.5px solid #86efac",
-    borderRadius: "10px",
-    padding: "14px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-    marginTop: "12px",
-  },
-  recordedTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  deleteBtn: {
-    backgroundColor: "transparent",
-    border: "none",
-    color: "#dc2626",
-    fontSize: "13px",
-    fontWeight: 700,
-    cursor: "pointer",
-    padding: "2px 6px",
-  },
-  audioTag: {
-    width: "100%",
-    height: "36px",
-  },
-  convertedTextBox: {
-    backgroundColor: "#fff",
-    border: "1.5px solid #86efac",
-    borderRadius: "8px",
-    padding: "10px 12px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  convertedTextHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: "6px",
-  },
-  detectedBadge: {
-    backgroundColor: "#eff6ff",
-    border: "1px solid #bfdbfe",
-    color: "#1d4ed8",
-    fontSize: "11px",
-    fontWeight: 700,
-    padding: "2px 8px",
-    borderRadius: "10px",
-  },
-  convertedTextArea: {
-    fontSize: "15px",
-    fontWeight: 700,
-    color: "#0f172a",
-    lineHeight: 1.5,
-    border: "none",
-    outline: "none",
-    width: "100%",
-    resize: "vertical",
-    fontFamily: "inherit",
-    backgroundColor: "transparent",
-  },
-  processingText: {
-    fontSize: "13px",
-    color: "#1d4ed8",
-    fontWeight: 600,
-    fontStyle: "italic",
-    padding: "4px 0",
-  },
-  noSpeechWarning: {
-    fontSize: "13px",
-    color: "#6b7280",
-    fontStyle: "italic",
-    padding: "4px 0",
-  },
-  reRecordBtn: {
-    backgroundColor: "#fff",
-    border: "1px solid #86efac",
-    color: "#15803d",
-    padding: "5px 12px",
-    borderRadius: "6px",
-    fontSize: "12px",
-    fontWeight: 700,
-    cursor: "pointer",
-    alignSelf: "flex-start",
-  },
-  errorBox: {
-    backgroundColor: "#fef2f2",
-    border: "1px solid #fca5a5",
-    color: "#dc2626",
-    padding: "10px 12px",
-    borderRadius: "6px",
-    fontSize: "13px",
-    fontWeight: 600,
-    marginBottom: "12px",
-  },
+const S: Record<string, React.CSSProperties> = {
+  card:     { background: "#fff", border: "2px solid #3b82f6", borderRadius: 12, padding: "18px 16px", boxShadow: "0 2px 8px rgba(59,130,246,0.08)" },
+  row:      { display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8, marginBottom: 14 },
+  col:      { display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "8px 0" },
+  title:    { fontWeight: 800, fontSize: 16, color: "var(--text)" },
+  sub:      { fontSize: 13, color: "var(--text-muted)", marginTop: 2 },
+  langBtn:  { background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 14, padding: "4px 12px", fontSize: 12, fontWeight: 700, color: "#1d4ed8", cursor: "pointer" },
+  err:      { background: "#fef2f2", border: "1px solid #fca5a5", color: "#dc2626", padding: "10px 12px", borderRadius: 8, fontSize: 13, fontWeight: 600, marginBottom: 10 },
+  micBtn:   { width: 104, height: 104, borderRadius: "50%", border: "none", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.18s ease", outline: "none", WebkitTapHighlightColor: "transparent", touchAction: "manipulation" },
+  pill:     { background: "#fee2e2", color: "#991b1b", fontSize: 14, fontWeight: 800, padding: "3px 14px", borderRadius: 20, border: "1px solid #fca5a5" },
+  doneCard: { background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: 10, padding: 14, marginTop: 14, display: "flex", flexDirection: "column", gap: 8 },
+  del:      { background: "transparent", border: "none", color: "#dc2626", fontSize: 13, fontWeight: 700, cursor: "pointer", padding: 0 },
+  txBox:    { background: "#fff", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 12px" },
+  badge:    { background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10 },
+  ta:       { width: "100%", fontSize: 15, fontWeight: 700, color: "#0f172a", lineHeight: 1.6, border: "none", outline: "none", resize: "vertical", fontFamily: "inherit", background: "transparent" },
 };
