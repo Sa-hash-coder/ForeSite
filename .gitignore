@@ -39,8 +39,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-<<<<<<< HEAD
-=======
+
+# backend
 app/backend/node_modules/
->>>>>>> aniket-backend
+
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# keep example env files
+!.env.example
+!**/.env.example
+
+# local runner wrapper
+powershell.cmd
+
 

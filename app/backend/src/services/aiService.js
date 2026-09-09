@@ -29,10 +29,10 @@ async function analyzeReport(report) {
     audio_base64: report.audioUrl || null,
   };
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
 
+  try {
     const response = await fetch(`${AI_SERVICE_URL}/analyze`, {
       method: "POST",
       headers: {
@@ -42,8 +42,6 @@ async function analyzeReport(report) {
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -60,13 +58,18 @@ async function analyzeReport(report) {
       hazards: data.hazards || [],
       recommendations: data.recommendations || [],
       explanation: data.explanation || "",
+      extractedImageContext: data.extracted_image_context || null,
+      extractedAudioContext: data.extracted_audio_context || null,
       modelVersion: data.model_version || "v1.1-gemini-hybrid",
       processingTimeMs: data.processing_time_ms || 0,
       isFallback: Boolean(data.is_fallback),
+      extractionFallback: Boolean(data.extraction_fallback),
     };
   } catch (error) {
     console.warn(`[aiService] Could not reach AI service (${error.message}). Using safe local fallback.`);
     return getFallbackAssessment(payload);
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -90,9 +93,12 @@ function getFallbackAssessment(payload) {
       "Verify safety barricades around affected zone."
     ],
     explanation: "Notice: AI service was offline or unreachable. Preliminary heuristic risk estimate applied. Safety officer manual review required.",
+    extractedImageContext: null,
+    extractedAudioContext: null,
     modelVersion: "v1.1-offline-fallback",
     processingTimeMs: 5,
     isFallback: true,
+    extractionFallback: true,
   };
 }
 

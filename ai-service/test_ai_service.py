@@ -152,7 +152,32 @@ def test_severity_boost():
     assert result_critical["risk_score"] >= result_low["risk_score"], (
         f"Expected critical ({result_critical['risk_score']}) >= low ({result_low['risk_score']})"
     )
-    print("PASSED: severity=critical produced >= score compared to severity=low.")
+def test_language_processor():
+    """
+    Test 6: Language processor handles English, Hindi, and Hinglish gracefully.
+    """
+    print("\n--- Test 6: Language Processor (Hindi/Hinglish) ---")
+    from language_processor import _looks_english, _contains_devanagari, translate_if_needed
+
+    # 1. English detection
+    assert _looks_english("Exposed electrical wiring near water pump") is True
+    assert _looks_english("High voltage cable insulation damaged") is True
+
+    # 2. Devanagari detection
+    hindi_sample = "पानी के पंप के पास खुली बिजली की तार मिली"
+    assert _contains_devanagari(hindi_sample) is True
+    assert _looks_english(hindi_sample) is False
+
+    # 3. Graceful translation / passthrough test (never raises)
+    title, desc, lang, was_translated = translate_if_needed(
+        title="बिजली का तार खुला है",
+        description="सेक्टर 4 में पानी के पाइप के पास खुला तार मिला"
+    )
+    assert isinstance(title, str) and len(title) > 0
+    assert isinstance(desc, str) and len(desc) > 0
+    assert isinstance(lang, str)
+    assert isinstance(was_translated, bool)
+    print(f"PASSED: Language processor tested successfully. Detected language: '{lang}', Translated: {was_translated}")
 
 
 if __name__ == "__main__":
@@ -162,6 +187,7 @@ if __name__ == "__main__":
     test_engine_low_hazard()
     test_flask_endpoints()
     test_severity_boost()
+    test_language_processor()
     print("\n==========================================")
     print("ALL AI SERVICE TESTS PASSED SUCCESSFULLY!")
     print("==========================================")
