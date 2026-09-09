@@ -9,9 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "groq-sdk": "^1.6.0",
     "mongoose": "^9.9.5",
     "next": "16.3.4",
     "react": "19.2.8",
@@ -27,8 +29,7 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
-  "main": "index.js",
+  "description": "ForeSite Safety Reporting Platform",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Sa-hash-coder/ForeSite.git"
@@ -36,7 +37,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/Sa-hash-coder/ForeSite/issues"
   },

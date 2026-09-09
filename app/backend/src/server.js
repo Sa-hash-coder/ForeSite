@@ -15,6 +15,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const aiRoutes = require("./routes/aiRoutes");
+const apiRoutes = require("./routes/apiRoutes");
 
 // Middleware
 const errorHandler = require("./middleware/errorHandler");
@@ -67,6 +68,10 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/ai", aiRoutes);
 
+// Auxiliary / legacy user and submission endpoints
+app.use("/api", apiRoutes);
+app.use("/", apiRoutes);
+
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
 app.get("/api/health", async (req, res) => {
   const aiHealth = await checkAiHealth().catch(() => ({ status: "DOWN" }));
@@ -92,17 +97,24 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/foresite";
-    if (!process.env.MONGO_URI) {
-      console.warn("⚠️  MONGO_URI not set — using local default: " + mongoUri);
-    }
     if (!process.env.JWT_SECRET) {
       process.env.JWT_SECRET = "foresite_dev_jwt_secret_change_in_production";
       console.warn("⚠️  JWT_SECRET not set — using dev fallback secret");
     }
 
-    await mongoose.connect(mongoUri);
-    console.log("✅ MongoDB connected");
+    if (process.env.MONGO_URI) {
+      await mongoose.connect(process.env.MONGO_URI);
+      console.log("✅ MongoDB connected");
+    } else {
+      try {
+        const defaultUri = "mongodb://localhost:27017/foresite";
+        console.warn("⚠️  MONGO_URI not set — attempting local default: " + defaultUri);
+        await mongoose.connect(defaultUri, { serverSelectionTimeoutMS: 2000 });
+        console.log("✅ MongoDB connected (local default)");
+      } catch (mongoErr) {
+        console.warn("⚠️  Running without MongoDB connection:", mongoErr.message);
+      }
+    }
 
     const server = app.listen(PORT, () => {
       console.log(`✅ ForeSite API server running on port ${PORT}`);
