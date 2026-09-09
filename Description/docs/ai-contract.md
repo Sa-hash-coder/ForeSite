@@ -1,4 +1,4 @@
-# SIF-Sentinel — AI/ML Contract
+# ForeSite — AI/ML Contract
 
 ## Overview
 
@@ -22,7 +22,7 @@ The AI service never reads from or writes to MongoDB. The backend owns all persi
 ## Service URL
 
 - Development: `http://localhost:8000`
-- Production: `https://sif-sentinel-ai.onrender.com`
+- Production: `https://foresite-ai.onrender.com`
 
 Backend uses `AI_SERVICE_URL` and `AI_SERVICE_API_KEY` environment variables.
 

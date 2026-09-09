@@ -1,4 +1,4 @@
-# SIF-Sentinel — 6-Day Development Plan
+# ForeSite — 6-Day Development Plan
 
 ## Team Assignments
 
@@ -18,7 +18,7 @@
 **Goal:** Every developer has a running environment and understands exactly what they are building. Contracts are frozen. Skeletons exist for all layers.
 
 ### P1 — Tech Lead
-- [ ] Rename/rebrand codebase: update `index.html` title to "SIF-Sentinel", update Sidebar logo/name
+- [ ] Rename/rebrand codebase: update `index.html` title to "ForeSite", update Sidebar logo/name
 - [ ] Create all `docs/` documents (this file + architecture.md, api-contract.md, ai-contract.md, database-schema.md)
 - [ ] Create `AGENTS.md`
 - [ ] Create `mock/` directory with all mock JSON files
@@ -87,7 +87,7 @@
 
 ### P6 — Backend + Database
 - [ ] Read `docs/database-schema.md`, `docs/api-contract.md`
-- [ ] Update `server/utils/constants.js` — replace old roles with new SIF-Sentinel roles
+- [ ] Update `server/utils/constants.js` — replace old roles with new ForeSite roles
 - [ ] Create new Mongoose models: `Report.js`, `RiskAssessment.js`, `Alert.js`, `MaintenanceTask.js`
 - [ ] Update `User.js` — add `department` field, update role enum
 - [ ] Create route/controller/service stubs for: `reportRoutes.js`, `dashboardRoutes.js`, `alertRoutes.js`, `taskRoutes.js`

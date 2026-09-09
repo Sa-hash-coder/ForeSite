@@ -1,4 +1,4 @@
-# SIF-Sentinel — REST API Contract
+# ForeSite — REST API Contract
 
 > **CRITICAL RULE**: This document is the source of truth for all API communication.
 > No developer may change request/response shapes without updating this document first.
@@ -9,7 +9,7 @@
 ## Base URL
 
 - Development: `http://localhost:5000/api`
-- Production: `https://sif-sentinel-api.onrender.com/api`
+- Production: `https://foresite-api.onrender.com/api`
 
 Frontend uses `VITE_API_URL` environment variable.
 

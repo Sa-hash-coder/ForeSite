@@ -1,4 +1,4 @@
-# SIF-Sentinel — Development Workflow
+# ForeSite — Development Workflow
 
 ## Git Branching Strategy
 
@@ -153,7 +153,7 @@ VITE_API_URL=http://localhost:5000/api
 ### `server/.env` — never committed
 ```
 PORT=5000
-MONGODB_URI=mongodb+srv://...@cluster.mongodb.net/sif_sentinel
+MONGODB_URI=mongodb+srv://...@cluster.mongodb.net/foresite
 JWT_SECRET=your_super_secret_jwt_key_minimum_32_chars
 JWT_EXPIRES_IN=7d
 NODE_ENV=development

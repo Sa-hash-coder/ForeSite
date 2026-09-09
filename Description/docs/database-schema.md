@@ -1,4 +1,4 @@
-# SIF-Sentinel — Database Schema
+# ForeSite — Database Schema
 
 ## Collections Overview
 
@@ -292,7 +292,7 @@ users
 
 The existing `users` collection must be **extended** (not replaced):
 1. Add `department` field (optional, no migration needed for existing users)
-2. Change `role` enum values: existing roles (`club_lead`, `cabinet`, `operations`, `admin`) must be REPLACED with new SIF-Sentinel roles (`worker`, `safety_officer`, `maintenance`, `admin`)
+2. Change `role` enum values: existing roles (`club_lead`, `cabinet`, `operations`, `admin`) must be REPLACED with new ForeSite roles (`worker`, `safety_officer`, `maintenance`, `admin`)
 3. The new collections (`reports`, `risk_assessments`, `alerts`, `maintenance_tasks`) are all NEW — no migration needed
 
 > **IMPORTANT**: The `admin` role name is kept for compatibility. All other role names change.
