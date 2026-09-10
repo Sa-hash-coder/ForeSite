@@ -18,7 +18,7 @@ import logging
 import re
 from typing import Tuple, Optional
 
-from config import GEMINI_API_KEY
+from config import GEMINI_API_KEY, TRANSLATION_ENABLED
 
 logger = logging.getLogger("foresite.language")
 
@@ -126,6 +126,10 @@ def translate_if_needed(
     Guarantees:
         Never raises — falls back to original text on any error.
     """
+    # If translation is explicitly disabled via env, pass through unchanged
+    if not TRANSLATION_ENABLED:
+        return title, description, "en", False
+
     # Combine for detection (description carries more signal than title alone)
     combined = f"{title}. {description}"
 
