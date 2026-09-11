@@ -103,6 +103,7 @@ export interface ReportSummary {
   category: string;
   severity: string;
   status: string;
+  imageUrl?: string;
   riskAssessment?: {
     riskScore: number;
     riskLevel: string;

@@ -125,3 +125,214 @@ button {
   cursor: pointer;
   font-family: inherit;
 }
+
+.bottom-nav-safe {
+  padding-bottom: calc(110px + env(safe-area-inset-bottom, 16px));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   APPLE-GRADE FLUID ANIMATIONS & MICRO-INTERACTIONS
+   Precision cubic-bezier curves, hardware-accelerated transforms,
+   and refined tactile transitions.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-apple-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+  --ease-apple-smooth: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-apple-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Keyframes */
+@keyframes appleFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes appleFadeDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes appleFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes appleScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes appleSlideRight {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes applePulseSubtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes appleGlow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(29, 78, 216, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(29, 78, 216, 0.45);
+  }
+}
+
+/* Base Animation Classes */
+.animate-apple-fade-up {
+  animation: appleFadeUp 0.6s var(--ease-apple) both;
+}
+
+.animate-apple-fade-down {
+  animation: appleFadeDown 0.5s var(--ease-apple) both;
+}
+
+.animate-apple-fade-in {
+  animation: appleFadeIn 0.5s var(--ease-apple-smooth) both;
+}
+
+.animate-apple-scale-in {
+  animation: appleScaleIn 0.45s var(--ease-apple-spring) both;
+}
+
+.animate-apple-slide-right {
+  animation: appleSlideRight 0.5s var(--ease-apple) both;
+}
+
+.animate-apple-pulse {
+  animation: applePulseSubtle 2.5s ease-in-out infinite;
+}
+
+/* Stagger Delays */
+.delay-1 { animation-delay: 60ms !important; }
+.delay-2 { animation-delay: 120ms !important; }
+.delay-3 { animation-delay: 180ms !important; }
+.delay-4 { animation-delay: 240ms !important; }
+.delay-5 { animation-delay: 300ms !important; }
+.delay-6 { animation-delay: 380ms !important; }
+.delay-7 { animation-delay: 460ms !important; }
+
+/* Interactive Elements (Apple Card & Button Tactile Physics) */
+.apple-card {
+  transition: transform 0.35s var(--ease-apple),
+              box-shadow 0.35s var(--ease-apple),
+              border-color 0.25s var(--ease-apple-smooth),
+              background-color 0.25s var(--ease-apple-smooth);
+  will-change: transform, box-shadow;
+}
+
+.apple-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+}
+
+.apple-card:active {
+  transform: translateY(-1px) scale(0.992);
+  transition-duration: 0.12s;
+}
+
+.apple-btn {
+  transition: transform 0.2s var(--ease-apple-spring),
+              box-shadow 0.25s var(--ease-apple),
+              background-color 0.2s var(--ease-apple-smooth),
+              filter 0.2s ease,
+              border-color 0.2s ease;
+  will-change: transform;
+}
+
+.apple-btn:hover {
+  transform: translateY(-1.5px) scale(1.015);
+  box-shadow: 0 6px 16px -2px rgba(29, 78, 216, 0.25);
+}
+
+.apple-btn:active {
+  transform: scale(0.965);
+  transition-duration: 0.08s;
+  box-shadow: none;
+}
+
+.apple-pill {
+  transition: all 0.25s var(--ease-apple);
+}
+.apple-pill:hover {
+  transform: scale(1.05);
+}
+
+/* Glassmorphism Navigation / Header Apple Styling */
+.apple-glass {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Smooth Input Focus Effect */
+input, textarea, select {
+  transition: border-color 0.2s var(--ease-apple-smooth),
+              box-shadow 0.25s var(--ease-apple),
+              background-color 0.2s var(--ease-apple-smooth);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18) !important;
+}
+
+/* Nav Item Smooth Underline / Highlight */
+.apple-nav-item {
+  position: relative;
+  transition: color 0.2s var(--ease-apple-smooth), background-color 0.2s var(--ease-apple-smooth);
+}
+
+/* Page container smooth entrance */
+.apple-page-enter {
+  animation: appleFadeIn 0.4s var(--ease-apple-smooth) both;
+}
+
+/* Respect user's reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

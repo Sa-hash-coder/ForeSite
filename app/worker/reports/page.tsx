@@ -27,7 +27,7 @@ export default function MyReportsPage() {
     <div>
       <div style={s.header}>
         <h1 style={s.title}>{t.myReports}</h1>
-        <Link href="/worker/submit" style={s.newBtn}>+ {t.reportIssue}</Link>
+        <Link href="/worker/submit" className="apple-btn" style={s.newBtn}>+ {t.reportIssue}</Link>
       </div>
 
       {/* Status filter chips */}
@@ -36,6 +36,7 @@ export default function MyReportsPage() {
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
+            className="apple-pill"
             style={{
               ...s.filterChip,
               ...(filter === f.value ? s.filterChipActive : {}),
@@ -47,7 +48,7 @@ export default function MyReportsPage() {
       </div>
 
       {filtered.length === 0 && (
-        <div style={s.emptyBox}>
+        <div className="apple-card animate-apple-scale-in" style={s.emptyBox}>
           <p style={{ fontSize: "32px", marginBottom: "8px" }}>📭</p>
           <p style={{ fontWeight: 600, color: "var(--text)" }}>
             {t.noReportsYet}
@@ -55,12 +56,13 @@ export default function MyReportsPage() {
         </div>
       )}
 
-      {filtered.map((r) => {
+      {filtered.map((r, idx) => {
         const displayTitle = lang === "hi" && r.titleHi ? r.titleHi : r.title;
         const displayLocation = lang === "hi" && r.locationHi ? r.locationHi : r.location;
+        const delayClass = `delay-${(idx % 4) + 1}`;
 
         return (
-          <Link href={`/worker/reports/${r._id}`} key={r._id} style={s.card}>
+          <Link href={`/worker/reports/${r._id}`} key={r._id} className={`apple-card animate-apple-fade-up ${delayClass}`} style={s.card}>
             <div style={s.cardTop}>
               <span style={s.cardTitle}>{displayTitle}</span>
               <StatusBadge status={r.status} />

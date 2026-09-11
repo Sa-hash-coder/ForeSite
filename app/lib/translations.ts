@@ -7,6 +7,8 @@ export interface Translations {
   home: string;
   reportIssue: string;
   myReports: string;
+  profile: string;
+  dashboard: string;
   languageBtn: string;
   footerText: string;
   backToReports: string;
@@ -39,6 +41,17 @@ export interface Translations {
   statTotal: string;
   statPending: string;
   statResolved: string;
+  statCritical: string;
+  statUnderReview: string;
+  seeHazardTitle: string;
+  seeHazardSub: string;
+  uploadPhoto: string;
+  yourImpact: string;
+  yourImpactSub: string;
+  aiPoweredAnalysis: string;
+  fasterResolution: string;
+  saferCommunities: string;
+  aiInsights: string;
   recentReports: string;
   seeAll: string;
   noReportsYet: string;
@@ -105,12 +118,14 @@ export interface Translations {
 export const translations: Record<Language, Translations> = {
   en: {
     appTitle: "ForeSite",
-    workerName: "Rajan",
-    home: "🏠 Home",
-    reportIssue: "📋 Report Hazard",
-    myReports: "📁 My Reports",
+    workerName: "Aniket",
+    home: "Home",
+    dashboard: "Dashboard",
+    reportIssue: "Submit Report",
+    myReports: "My Reports",
+    profile: "Profile",
     languageBtn: "हिंदी में बदलें",
-    footerText: "ForeSite Safety Platform • Report hazards immediately to stay safe",
+    footerText: "ForeSite Safety Platform • Safer Cities. Stronger Communities.",
     backToReports: "← Back to My Reports",
     loading: "Loading...",
     error: "Something went wrong. Please check your connection.",
@@ -125,21 +140,32 @@ export const translations: Record<Language, Translations> = {
     status: {
       pending_analysis: "AI Analyzing...",
       analysis_complete: "Verified",
-      under_review: "Officer Checking",
+      under_review: "Under Review",
       action_assigned: "Fix In Progress",
-      resolved: "Fixed & Safe ✓",
+      resolved: "Resolved",
       closed: "Closed",
     },
 
-    greeting: "Hello, Rajan 👋",
-    greetingSub: "Safety first. If you see danger, report it immediately.",
+    greeting: "Good Morning, Aniket!",
+    greetingSub: "Thanks for keeping your community safe.",
     reportBtnTitle: "Report a Hazard / Danger",
-    reportBtnSub: "Hold the mic to speak or take a photo",
+    reportBtnSub: "Upload a photo, let AI analyze it, and help make your city safer.",
     statTotal: "Total Reports",
-    statPending: "In Progress",
-    statResolved: "Fixed & Safe",
+    statPending: "Under Review",
+    statResolved: "Resolved",
+    statCritical: "Critical",
+    statUnderReview: "Under Review",
+    seeHazardTitle: "See a hazard? Report it now.",
+    seeHazardSub: "Upload a photo, let AI analyze it, and help make your city safer.",
+    uploadPhoto: "Upload Photo",
+    yourImpact: "Your Impact",
+    yourImpactSub: "Your reports help create cleaner, safer, and smarter cities.",
+    aiPoweredAnalysis: "AI-powered analysis",
+    fasterResolution: "Faster resolution",
+    saferCommunities: "Safer communities",
+    aiInsights: "AI Insights",
     recentReports: "Recent Reports",
-    seeAll: "See All →",
+    seeAll: "View All →",
     noReportsYet: "No reports yet",
     noReportsSub: "When you report an issue, it will appear here.",
 
@@ -211,12 +237,14 @@ export const translations: Record<Language, Translations> = {
 
   hi: {
     appTitle: "फ़ोरसाइट (ForeSite)",
-    workerName: "राजन",
-    home: "🏠 मुख्य पृष्ठ",
-    reportIssue: "📋 ख़तरा दर्ज करें",
-    myReports: "📁 मेरी रिपोर्ट्स",
+    workerName: "अनिकेत",
+    home: "मुख्य पृष्ठ",
+    dashboard: "डैशबोर्ड",
+    reportIssue: "रिपोर्ट दर्ज करें",
+    myReports: "मेरी रिपोर्ट्स",
+    profile: "प्रोफ़ाइल",
     languageBtn: "Switch to English",
-    footerText: "फ़ोरसाइट सुरक्षा मंच • सुरक्षित रहने के लिए तुरंत ख़तरा दर्ज करें",
+    footerText: "फ़ोरसाइट सुरक्षा मंच • सुरक्षित शहर, सशक्त समुदाय।",
     backToReports: "← वापस मेरी रिपोर्ट्स पर जाएं",
     loading: "लोड हो रहा है...",
     error: "कुछ गड़बड़ हुई। कृपया इंटरनेट कनेक्शन जांचें।",
@@ -231,19 +259,30 @@ export const translations: Record<Language, Translations> = {
     status: {
       pending_analysis: "AI जांच कर रहा है...",
       analysis_complete: "सत्यापित",
-      under_review: "अधिकारी जांच रहे हैं",
+      under_review: "जांच के अधीन",
       action_assigned: "सुधार कार्य जारी है",
-      resolved: "ठीक हो गया (सुरक्षित) ✓",
+      resolved: "हल किया गया",
       closed: "बंद",
     },
 
-    greeting: "नमस्ते, राजन 👋",
-    greetingSub: "सुरक्षा सबसे पहले। अगर कोई ख़तरा दिखे, तुरंत सूचित करें।",
+    greeting: "शुभ प्रभात, अनिकेत!",
+    greetingSub: "अपने समुदाय को सुरक्षित रखने के लिए धन्यवाद।",
     reportBtnTitle: "ख़तरा / समस्या दर्ज करें",
-    reportBtnSub: "माइक दबाकर बोलें या फ़ोटो खींचें",
+    reportBtnSub: "फ़ोटो अपलोड करें, AI जांच करेगा और शहर को सुरक्षित बनाएगा।",
     statTotal: "कुल रिपोर्ट्स",
-    statPending: "प्रगति पर",
-    statResolved: "ठीक और सुरक्षित",
+    statPending: "जांच के अधीन",
+    statResolved: "हल किया गया",
+    statCritical: "गंभीर ख़तरा",
+    statUnderReview: "जांच के अधीन",
+    seeHazardTitle: "कोई ख़तरा देखा? अभी रिपोर्ट करें।",
+    seeHazardSub: "फ़ोटो अपलोड करें, AI जांच करेगा और शहर को सुरक्षित बनाएगा।",
+    uploadPhoto: "फ़ोटो अपलोड करें",
+    yourImpact: "आपका प्रभाव",
+    yourImpactSub: "आपकी रिपोर्ट स्वच्छ, सुरक्षित और बेहतर शहर बनाने में मदद करती हैं।",
+    aiPoweredAnalysis: "AI चालित विश्लेषण",
+    fasterResolution: "त्वरित समाधान",
+    saferCommunities: "सुरक्षित समुदाय",
+    aiInsights: "AI अंतर्दृष्टि",
     recentReports: "हालिया रिपोर्ट्स",
     seeAll: "सभी देखें →",
     noReportsYet: "अभी तक कोई रिपोर्ट नहीं है",

@@ -84,12 +84,12 @@ export default function SubmitReportPage() {
 
   if (success) {
     return (
-      <div style={s.successCard}>
+      <div className="apple-card animate-apple-scale-in" style={s.successCard}>
         <div style={s.successIcon}>✅</div>
         <h2 style={s.successTitle}>{t.submitSuccessTitle}</h2>
         <p style={s.successMsg}>{t.submitSuccessMsg}</p>
         <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => router.push("/worker/reports")} style={s.primaryBtn}>
+          <button onClick={() => router.push("/worker/reports")} className="apple-btn" style={s.primaryBtn}>
             {t.viewMyReports}
           </button>
           <button
@@ -101,6 +101,7 @@ export default function SubmitReportPage() {
               setAudioBase64(null);
               setSuccess(false);
             }}
+            className="apple-btn"
             style={s.outlineBtn}
           >
             {t.submitAnother}
@@ -111,13 +112,13 @@ export default function SubmitReportPage() {
   }
 
   return (
-    <div>
+    <div className="animate-apple-fade-up">
       <h1 style={s.pageTitle}>{t.submitTitle}</h1>
       <p style={s.pageSubtitle}>{t.submitSubtitle}</p>
 
       {error && <div style={s.errorBox}>⚠️ {error}</div>}
 
-      <form onSubmit={handleSubmit} style={s.form}>
+      <form onSubmit={handleSubmit} className="apple-card" style={s.form}>
         {/* Step 1: Location Selection */}
         <div style={s.field}>
           <label style={s.label} htmlFor="location">{t.locationLabel}</label>
@@ -201,6 +202,7 @@ export default function SubmitReportPage() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
+              className="apple-btn"
               style={s.photoBtn}
             >
               {t.photoBtn}
@@ -212,6 +214,7 @@ export default function SubmitReportPage() {
         <button
           type="submit"
           disabled={submitting}
+          className="apple-btn"
           style={{
             ...s.submitBtn,
             opacity: submitting ? 0.7 : 1,

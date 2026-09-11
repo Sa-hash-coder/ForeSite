@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ACTIVE_ALERTS } from '@/app/lib/officerMockData';
+import { LanguageProvider, useLanguage } from '@/app/lib/LanguageContext';
+import LanguageSwitchButton from '@/app/components/LanguageSwitchButton';
 
 // Replaced emojis with clean, strict SVG icons
 const NAV_ITEMS = [
@@ -42,7 +44,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/officer/tasks':      'Maintenance Work Orders',
 };
 
-export default function OfficerLayout({ children }: { children: React.ReactNode }) {
+function OfficerLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -298,13 +300,17 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
 
-          {/* Right Action Controls: Theme Switcher & Alerts */}
+          {/* Right Action Controls: Language Switcher, Theme Switcher & Alerts */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Universal Hindi / English Language Switcher */}
+            <LanguageSwitchButton variant="header" />
+
             {/* Theme Toggle Button: Moon for dark mode, Sun for light mode */}
             <button
               onClick={toggleTheme}
               title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
               aria-label={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+              className="apple-btn"
               style={{
                 width: 36,
                 height: 36,
@@ -316,15 +322,6 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary)';
-                (e.currentTarget as HTMLElement).style.background = 'var(--surface-subtle)';
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
-                (e.currentTarget as HTMLElement).style.background = 'var(--surface)';
               }}
             >
               {theme === 'light' ? (
@@ -349,6 +346,7 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
             {/* Notification Bell */}
             <Link href="/officer/alerts">
               <button
+                className="apple-btn"
                 style={{
                   width: 36,
                   height: 36,
@@ -361,20 +359,12 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
                   justifyContent: 'center',
                   position: 'relative',
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary)';
-                  (e.currentTarget as HTMLElement).style.background = 'var(--surface-subtle)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
-                  (e.currentTarget as HTMLElement).style.background = 'var(--surface)';
                 }}
               >
                 🔔
                 {unacknowledgedCount > 0 && (
                   <span
+                    className="animate-apple-pulse"
                     style={{
                       position: 'absolute',
                       top: -4,
@@ -397,8 +387,8 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
           </div>
         </header>
 
-        {/* Page Container: Full viewport width edge-to-edge with smooth responsive padding */}
-        <main style={{ padding: '24px 28px', flex: 1, width: '100%', boxSizing: 'border-box' }} className="page-main-pad">
+        {/* Page Container: Full viewport width edge-to-edge with smooth responsive padding & Apple entrance */}
+        <main key={pathname} style={{ padding: '24px 28px', flex: 1, width: '100%', boxSizing: 'border-box' }} className="page-main-pad apple-page-enter">
           {children}
         </main>
       </div>
@@ -445,3 +435,12 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
     </div>
   );
 }
+
+export default function OfficerLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <LanguageProvider>
+      <OfficerLayoutContent>{children}</OfficerLayoutContent>
+    </LanguageProvider>
+  );
+}
+

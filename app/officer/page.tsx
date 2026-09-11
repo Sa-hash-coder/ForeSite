@@ -123,7 +123,7 @@ export default function OfficerOverview() {
       {/* ── KPI Row ─────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
         {/* Total Reports */}
-        <div style={{ ...card, borderTop: '4px solid var(--primary)' }}>
+        <div className="apple-card animate-apple-fade-up delay-1" style={{ ...card, borderTop: '4px solid var(--primary)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Total Reports</div>
@@ -137,7 +137,7 @@ export default function OfficerOverview() {
         </div>
 
         {/* Critical / High */}
-        <div style={{ ...card, borderTop: '4px solid var(--danger)' }}>
+        <div className="apple-card animate-apple-fade-up delay-2" style={{ ...card, borderTop: '4px solid var(--danger)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Critical / High</div>
@@ -151,7 +151,7 @@ export default function OfficerOverview() {
         </div>
 
         {/* Pending Review */}
-        <div style={{ ...card, borderTop: '4px solid var(--warning)' }}>
+        <div className="apple-card animate-apple-fade-up delay-3" style={{ ...card, borderTop: '4px solid var(--warning)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Pending Review</div>
@@ -165,7 +165,7 @@ export default function OfficerOverview() {
         </div>
 
         {/* Resolved */}
-        <div style={{ ...card, borderTop: '4px solid var(--success)' }}>
+        <div className="apple-card animate-apple-fade-up delay-4" style={{ ...card, borderTop: '4px solid var(--success)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Resolved</div>
@@ -182,7 +182,7 @@ export default function OfficerOverview() {
       {/* ── Chart Row ───────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
         {/* Bar chart */}
-        <div style={card}>
+        <div className="apple-card animate-apple-fade-up delay-2" style={card}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 20 }}>Weekly Reports (Last 8 Weeks)</div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 180 }}>
             {/* Y-axis */}
@@ -234,7 +234,7 @@ export default function OfficerOverview() {
         </div>
 
         {/* Category Breakdown */}
-        <div style={card}>
+        <div className="apple-card animate-apple-fade-up delay-3" style={card}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 20 }}>Category Breakdown</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {CATEGORY_STATS.map(cat => (
@@ -255,14 +255,15 @@ export default function OfficerOverview() {
       {/* ── Bottom Two-Column ─────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
         {/* Recent Reports */}
-        <div style={card}>
+        <div className="apple-card animate-apple-fade-up delay-3" style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Recent Reports</div>
-            <Link href="/officer/reports" style={{ fontSize: 13, color: 'var(--primary)', fontWeight: 600 }}>View all →</Link>
+            <Link href="/officer/reports" className="apple-btn" style={{ fontSize: 13, color: 'var(--primary)', fontWeight: 600 }}>View all →</Link>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {recentReports.map((r, i) => (
               <Link key={r._id} href={`/officer/reports/${r._id}`}
+                className="apple-card"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -270,11 +271,8 @@ export default function OfficerOverview() {
                   padding: '12px 8px',
                   borderRadius: 10,
                   borderBottom: i < recentReports.length - 1 ? '1px solid var(--border)' : 'none',
-                  transition: 'background 0.15s ease',
                   cursor: 'pointer',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--surface-subtle)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
                 <span style={riskPillStyle(r.riskScore)}>{r.riskScore}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -288,14 +286,14 @@ export default function OfficerOverview() {
         </div>
 
         {/* Active Alerts */}
-        <div style={card}>
+        <div className="apple-card animate-apple-fade-up delay-4" style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Active Alerts</div>
-            <Link href="/officer/alerts" style={{ fontSize: 13, color: 'var(--primary)', fontWeight: 600 }}>View all →</Link>
+            <Link href="/officer/alerts" className="apple-btn" style={{ fontSize: 13, color: 'var(--primary)', fontWeight: 600 }}>View all →</Link>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {topAlerts.map(alert => (
-              <div key={alert._id} style={{
+              <div key={alert._id} className="apple-card" style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 16,
@@ -325,7 +323,7 @@ export default function OfficerOverview() {
       </div>
 
       {/* ── Zone Risk Summary ────────────────────────────────── */}
-      <div style={card}>
+      <div className="apple-card animate-apple-fade-up delay-5" style={card}>
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Top Risk Zones</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
           {topZones.map(zone => {
@@ -335,7 +333,7 @@ export default function OfficerOverview() {
             const color = isCrit ? 'var(--danger)' : isHigh ? 'var(--warning)' : 'var(--text)';
             const border = isCrit ? 'var(--danger)' : isHigh ? 'var(--warning)' : 'var(--border)';
             return (
-              <div key={zone.id} style={{
+              <div key={zone.id} className="apple-card" style={{
                 background: bg,
                 border: `1px solid ${border}`,
                 borderRadius: 14,
