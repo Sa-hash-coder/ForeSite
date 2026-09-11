@@ -6,17 +6,14 @@ import { MAINTENANCE_TASKS, MAINTENANCE_WORKERS, MaintenanceTask, TaskStatus } f
 import { exportToCSV, exportToExcel, ExportColumn } from '@/app/lib/exportUtils';
 
 const TASK_EXPORT_COLUMNS: ExportColumn<MaintenanceTask>[] = [
-  { header: 'Task ID', accessor: t => t._id },
-  { header: 'Task Title', accessor: t => t.title },
-  { header: 'Report Reference', accessor: t => t.reportId },
-  { header: 'Category', accessor: t => t.category },
-  { header: 'Priority', accessor: t => t.priority.toUpperCase() },
-  { header: 'Status', accessor: t => t.status.replace(/_/g, ' ').toUpperCase() },
-  { header: 'Assigned Worker', accessor: t => t.assignedTo?.name || 'Unassigned' },
-  { header: 'Worker Role', accessor: t => t.assignedTo?.role || '' },
-  { header: 'Worker Department', accessor: t => t.assignedTo?.dept || '' },
-  { header: 'Due Date', accessor: t => t.dueDate },
-  { header: 'Overdue', accessor: t => (new Date(t.dueDate) < new Date() && t.status !== 'done' ? 'YES' : 'NO') },
+  { header: 'Task ID', accessor: (t: MaintenanceTask) => t._id },
+  { header: 'Task Title', accessor: (t: MaintenanceTask) => t.title },
+  { header: 'Report Reference', accessor: (t: MaintenanceTask) => t.reportId },
+  { header: 'Priority', accessor: (t: MaintenanceTask) => t.priority.toUpperCase() },
+  { header: 'Status', accessor: (t: MaintenanceTask) => t.status.replace(/_/g, ' ').toUpperCase() },
+  { header: 'Assigned Worker', accessor: (t: MaintenanceTask) => t.assignedTo || 'Unassigned' },
+  { header: 'Due Date', accessor: (t: MaintenanceTask) => t.dueDate },
+  { header: 'Overdue', accessor: (t: MaintenanceTask) => (new Date(t.dueDate) < new Date() && t.status !== 'done' ? 'YES' : 'NO') },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
