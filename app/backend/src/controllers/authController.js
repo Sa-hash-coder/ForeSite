@@ -41,6 +41,9 @@ exports.register = async (req, res, next) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({ success: false, message: "Email already registered" });
+<<<<<<< HEAD
+>>>>>>> a5952b3 (Login and admin dashboard)
+=======
 >>>>>>> a5952b3 (Login and admin dashboard)
     }
 
@@ -81,6 +84,8 @@ exports.register = async (req, res, next) => {
       department: department || "General",
     });
 
+<<<<<<< HEAD
+=======
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -103,6 +108,49 @@ exports.register = async (req, res, next) => {
       },
     });
   } catch (error) {
+    res.status(500).json({ success: false, message: "Could not create user", error: error.message });
+  }
+};
+
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ success: false, message: "Invalid email or password" });
+    }
+
+>>>>>>> a5952b3 (Login and admin dashboard)
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+<<<<<<< HEAD
+    res.status(201).json({
+      success: true,
+      message: "User created",
+=======
+    res.json({
+      success: true,
+      message: "Login successful",
+>>>>>>> a5952b3 (Login and admin dashboard)
+      data: {
+        token,
+        user: {
+          _id: user._id,
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          department: user.department,
+        },
+      },
+    });
+  } catch (error) {
+<<<<<<< HEAD
     res.status(500).json({ success: false, message: "Could not create user", error: error.message });
 >>>>>>> a5952b3 (Login and admin dashboard)
   }
@@ -179,3 +227,8 @@ exports.getMe = async (req, res, next) => {
 >>>>>>> a5952b3 (Login and admin dashboard)
   }
 };
+=======
+    res.status(500).json({ success: false, message: "Could not log in", error: error.message });
+  }
+};
+>>>>>>> a5952b3 (Login and admin dashboard)
