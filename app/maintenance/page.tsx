@@ -20,10 +20,12 @@ import {
   X,
   FileText,
   AlertOctagon,
-  ArrowRight
+  ArrowRight,
+  Check,
+  Cpu
 } from "lucide-react";
 
-// ─── Interfaces ─────────────────────────────────────────────────────────────
+// ─── Types & Models ─────────────────────────────────────────────────────────
 
 type Severity = "critical" | "high" | "medium" | "low";
 type OrderStatus = "dispatched" | "in_progress" | "clearance_submitted" | "officer_verified";
@@ -48,11 +50,6 @@ interface DispatchedOrder {
   dispatchedAt: string;
   description: string;
   lotoRequired: boolean;
-  telemetryTrigger?: {
-    sensor: string;
-    value: string;
-    threshold: string;
-  };
 }
 
 interface EquipmentNode {
@@ -60,12 +57,10 @@ interface EquipmentNode {
   tag: string;
   name: string;
   type: string;
-  severity: Severity;
   status: "operating" | "warning" | "critical";
   vibration: number; // mm/s
   temperature: number; // °C
   pressure: number; // PSI
-  acousticIndex: number; // dB
   activeOrderId?: string;
 }
 
@@ -77,122 +72,96 @@ interface LotoPermit {
   isolationPoint: string;
   energyType: string;
   lockedByOfficer: string;
-  crewLead: string;
   padlockId: string;
   status: "LOCKED_SAFE" | "PENDING_CLEARANCE";
 }
 
-// ─── Grounded Initial Data ──────────────────────────────────────────────────
+// ─── Data (Concise & Lightweight) ──────────────────────────────────────────
 
 const INITIAL_ORDERS: DispatchedOrder[] = [
   {
     id: "ord-001",
     orderNumber: "WO-9038",
-    title: "TK-80 Scaffolding – Missing handrail & perimeter barrier replacement",
+    title: "TK-80 Scaffolding – Missing handrail & safety barrier replacement",
     equipmentId: "TK-80",
-    equipmentName: "Crude Storage Tank & Scaffolding Tier 3",
+    equipmentName: "Crude Storage Tank Scaffolding",
     location: "Sector 4 North, Tank Farm",
     zone: "Zone TF-4",
     severity: "critical",
     status: "in_progress",
-    dispatchedBy: {
-      name: "Officer Vikram Sharma",
-      role: "Lead Safety Supervisor",
-      badgeId: "SAF-4019",
-    },
-    safetyPermitId: "PTW-2026-0881",
-    assignedCrew: "Scaffolding & Rigging Team M-4",
-    dispatchedAt: "12 min ago",
-    description:
-      "Frontline worker reported 3 meters of missing kickboards and outer handrail on elevated access tier. Fall hazard tier 1 (SIF Precursor). Immediate replacement and safety gate installation ordered.",
+    dispatchedBy: { name: "Vikram Sharma", role: "Safety Supervisor", badgeId: "SAF-4019" },
+    safetyPermitId: "PTW-0881",
+    assignedCrew: "Scaffolding Team M-4",
+    dispatchedAt: "12m ago",
+    description: "3 meters of kickboards and outer handrail missing on Tier 3 access. SIF precursor requiring immediate barrier installation.",
     lotoRequired: true,
   },
   {
     id: "ord-002",
     orderNumber: "WO-9039",
-    title: "V-204 Hydrocracker – Radial vibration anomaly & bearing alignment",
+    title: "V-204 Hydrocracker – Radial vibration spike & bearing check",
     equipmentId: "V-204",
-    equipmentName: "Hydrocracker Reactor Vessel Pump C",
+    equipmentName: "Hydrocracker Reactor Vessel Pump",
     location: "Process Area 2, Hydro Unit",
     zone: "Zone PR-2",
     severity: "high",
     status: "dispatched",
-    dispatchedBy: {
-      name: "Officer Priya Patel",
-      role: "Operations Incident Officer",
-      badgeId: "SAF-2184",
-    },
-    safetyPermitId: "PTW-2026-0879",
-    assignedCrew: "Rotating Machinery Team M-4",
-    dispatchedAt: "28 min ago",
-    description:
-      "AI Sensor alert detected radial vibration spike exceeding 4.8 mm/s on pump bearing housing. Officer authorized immediate non-sparking inspection and dynamic balancing under LOTO isolation.",
+    dispatchedBy: { name: "Priya Patel", role: "Incident Officer", badgeId: "SAF-2184" },
+    safetyPermitId: "PTW-0879",
+    assignedCrew: "Rotating Machinery M-4",
+    dispatchedAt: "28m ago",
+    description: "Vibration sensor detected 4.8 mm/s anomaly on pump bearing. Dynamic balancing and inspection required.",
     lotoRequired: true,
-    telemetryTrigger: {
-      sensor: "Radial Vibration Sensor B4",
-      value: "4.8 mm/s",
-      threshold: "2.5 mm/s max",
-    },
   },
   {
     id: "ord-003",
     orderNumber: "WO-9040",
-    title: "EX-12 Flange Line – Gasket integrity inspection & minor drip containment",
+    title: "EX-12 Flange Line – Gasket inspection & minor drip containment",
     equipmentId: "EX-12",
-    equipmentName: "Heat Exchanger Flange Line B",
+    equipmentName: "Heat Exchanger Flange B",
     location: "Cracking Platform East",
     zone: "Zone CP-1",
     severity: "medium",
     status: "dispatched",
-    dispatchedBy: {
-      name: "Officer Vikram Sharma",
-      role: "Lead Safety Supervisor",
-      badgeId: "SAF-4019",
-    },
-    safetyPermitId: "PTW-2026-0875",
-    assignedCrew: "Piping & Valves Crew M-2",
-    dispatchedAt: "1 hr ago",
-    description:
-      "Worker report logged minor oily condensation on lower flange joint during routine walkdown. Torque check and optical gas imaging required.",
+    dispatchedBy: { name: "Vikram Sharma", role: "Safety Supervisor", badgeId: "SAF-4019" },
+    safetyPermitId: "PTW-0875",
+    assignedCrew: "Piping Crew M-2",
+    dispatchedAt: "1h ago",
+    description: "Minor oily condensation detected on lower flange. Torque check and optical gas imaging needed.",
     lotoRequired: false,
   },
   {
     id: "ord-004",
     orderNumber: "WO-9041",
-    title: "P-101 Feed Pump – Scheduled preventive lubrication & seal clearance",
+    title: "P-101 Feed Pump – 500-hr preventive lubrication & seal test",
     equipmentId: "P-101",
-    equipmentName: "Main Atmospheric Crude Feed Pump",
-    location: "Crude Unit Intake",
+    equipmentName: "Crude Feed Pump",
+    location: "Crude Intake",
     zone: "Zone CU-1",
     severity: "low",
     status: "dispatched",
-    dispatchedBy: {
-      name: "Officer Sunita Verma",
-      role: "Compliance Inspector",
-      badgeId: "SAF-3102",
-    },
-    safetyPermitId: "PTW-2026-0868",
+    dispatchedBy: { name: "Sunita Verma", role: "Compliance Inspector", badgeId: "SAF-3102" },
+    safetyPermitId: "PTW-0868",
     assignedCrew: "Lube Tech Crew M-1",
-    dispatchedAt: "2 hr ago",
-    description:
-      "Periodic 500-hour bearing grease packing and mechanical seal barrier fluid check as mandated by OSHA 1910.",
+    dispatchedAt: "2h ago",
+    description: "Periodic bearing grease packing and mechanical seal barrier fluid check as per OSHA 1910.",
     lotoRequired: false,
   },
 ];
 
 const INITIAL_NODES: EquipmentNode[] = [
-  { id: "node-tk80", tag: "TK-80", name: "Crude Storage Tank & Scaffolding", type: "Atmospheric Tank", severity: "critical", status: "critical", vibration: 0.8, temperature: 32, pressure: 14, acousticIndex: 35, activeOrderId: "WO-9038" },
-  { id: "node-v204", tag: "V-204", name: "Hydrocracker Reactor Vessel", type: "Pressure Vessel", severity: "high", status: "warning", vibration: 4.8, temperature: 118, pressure: 145, acousticIndex: 78, activeOrderId: "WO-9039" },
-  { id: "node-ex12", tag: "EX-12", name: "Heat Exchanger Flange Line", type: "Shell & Tube Exchanger", severity: "medium", status: "warning", vibration: 2.7, temperature: 94, pressure: 122, acousticIndex: 61, activeOrderId: "WO-9040" },
-  { id: "node-p101", tag: "P-101", name: "Feed Pump 101", type: "Rotating Pump", severity: "low", status: "operating", vibration: 1.4, temperature: 54, pressure: 82, acousticIndex: 42, activeOrderId: "WO-9041" },
-  { id: "node-fcc01", tag: "FCC-01", name: "Fluid Catalytic Cracking Unit", type: "Refinery Cracker", severity: "low", status: "operating", vibration: 1.9, temperature: 88, pressure: 110, acousticIndex: 49 },
-  { id: "node-hdp02", tag: "HDP-02", name: "Hydro-Desulfurization Platform", type: "Platform & Piping", severity: "low", status: "operating", vibration: 1.1, temperature: 62, pressure: 95, acousticIndex: 39 },
+  { id: "tk80", tag: "TK-80", name: "Crude Storage Tank", type: "Storage Tank", status: "critical", vibration: 0.8, temperature: 32, pressure: 14, activeOrderId: "WO-9038" },
+  { id: "v204", tag: "V-204", name: "Hydrocracker Pump", type: "Pressure Pump", status: "warning", vibration: 4.8, temperature: 118, pressure: 145, activeOrderId: "WO-9039" },
+  { id: "ex12", tag: "EX-12", name: "Heat Exchanger B", type: "Heat Exchanger", status: "warning", vibration: 2.7, temperature: 94, pressure: 122, activeOrderId: "WO-9040" },
+  { id: "p101", tag: "P-101", name: "Crude Feed Pump", type: "Feed Pump", status: "operating", vibration: 1.4, temperature: 54, pressure: 82, activeOrderId: "WO-9041" },
+  { id: "fcc01", tag: "FCC-01", name: "Catalytic Cracker", type: "Cracking Unit", status: "operating", vibration: 1.9, temperature: 88, pressure: 110 },
+  { id: "hdp02", tag: "HDP-02", name: "Hydro Platform", type: "Piping Rig", status: "operating", vibration: 1.1, temperature: 62, pressure: 95 },
 ];
 
 const INITIAL_LOTO: LotoPermit[] = [
-  { id: "lot-001", tagNumber: "LOTO-2026-041", assetTag: "TK-80", assetName: "Crude Storage Scaffolding Tier 3", isolationPoint: "Elevated Access Ladder Gate Lock", energyType: "Mechanical Fall Hazard", lockedByOfficer: "Officer Vikram Sharma", crewLead: "Devon Vance", padlockId: "PAD-RED-409", status: "LOCKED_SAFE" },
-  { id: "lot-002", tagNumber: "LOTO-2026-042", assetTag: "V-204", assetName: "Hydrocracker Reactor Feed Pump C", isolationPoint: "Breaker CB-440B (480V Main MCC)", energyType: "Electrical (480V 3-Phase)", lockedByOfficer: "Officer Priya Patel", crewLead: "Devon Vance", padlockId: "PAD-RED-412", status: "LOCKED_SAFE" },
-  { id: "lot-003", tagNumber: "LOTO-2026-043", assetTag: "EX-12", assetName: "Flange Line Isolation Block Valve", isolationPoint: "Block Valve BV-12-INLET", energyType: "Hydrocarbon Fluid / 120 PSI", lockedByOfficer: "Officer Vikram Sharma", crewLead: "Devon Vance", padlockId: "PAD-BLU-108", status: "LOCKED_SAFE" },
+  { id: "lot-1", tagNumber: "LOTO-041", assetTag: "TK-80", assetName: "Crude Storage Tank", isolationPoint: "Ladder Access Barrier", energyType: "Mechanical Fall Risk", lockedByOfficer: "Vikram Sharma", padlockId: "PAD-409", status: "LOCKED_SAFE" },
+  { id: "lot-2", tagNumber: "LOTO-042", assetTag: "V-204", assetName: "Hydrocracker Pump", isolationPoint: "MCC Breaker CB-440B", energyType: "Electrical 480V", lockedByOfficer: "Priya Patel", padlockId: "PAD-412", status: "LOCKED_SAFE" },
+  { id: "lot-3", tagNumber: "LOTO-043", assetTag: "EX-12", assetName: "Heat Exchanger B", isolationPoint: "Block Valve BV-12", energyType: "Fluid / 120 PSI", lockedByOfficer: "Vikram Sharma", padlockId: "PAD-108", status: "LOCKED_SAFE" },
 ];
 
 export default function MaintenancePage() {
@@ -203,7 +172,7 @@ export default function MaintenancePage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [clearanceNote, setClearanceNote] = useState<string>("");
 
-  // Listen to sidebar tab change events
+  // Sync tab with layout events
   useEffect(() => {
     const handleTab = (e: Event) => {
       const customEvent = e as CustomEvent<string>;
@@ -214,6 +183,12 @@ export default function MaintenancePage() {
     window.addEventListener("maintenance-tab-change", handleTab);
     return () => window.removeEventListener("maintenance-tab-change", handleTab);
   }, []);
+
+  const changeTab = (tabId: "desk" | "orders" | "telemetry" | "loto" | "clearance") => {
+    setActiveTab(tabId);
+    const event = new CustomEvent("maintenance-tab-change", { detail: tabId });
+    window.dispatchEvent(event);
+  };
 
   const handleUpdateStatus = (id: string, nextStatus: OrderStatus) => {
     setOrders(orders.map((o) => (o.id === id ? { ...o, status: nextStatus } : o)));
@@ -228,63 +203,67 @@ export default function MaintenancePage() {
     setClearanceNote("");
   };
 
-  const filteredOrders = orders.filter((o) => {
-    if (orderFilter === "critical") return o.severity === "critical";
-    if (orderFilter === "high") return o.severity === "high";
-    if (orderFilter === "in_progress") return o.status === "in_progress";
-    return true;
-  }).filter((o) => {
-    if (!searchQuery) return true;
-    return (
-      o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.equipmentId.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
+  const filteredOrders = orders
+    .filter((o) => {
+      if (orderFilter === "critical") return o.severity === "critical";
+      if (orderFilter === "high") return o.severity === "high";
+      if (orderFilter === "in_progress") return o.status === "in_progress";
+      if (orderFilter === "clearance_submitted") return o.status === "clearance_submitted";
+      return true;
+    })
+    .filter((o) => {
+      if (!searchQuery) return true;
+      return (
+        o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        o.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        o.equipmentId.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
 
   const cardStyle: React.CSSProperties = {
     backgroundColor: "var(--surface)",
     border: "1px solid var(--border)",
-    borderRadius: 14,
-    padding: "24px",
-    boxShadow: "var(--shadow-sm)",
+    borderRadius: 12,
+    padding: "20px",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%", maxWidth: 1200, margin: "0 auto" }}>
 
-      {/* ─── 1. COMMAND HEADER ROW (Matching Officer Overview) ────────── */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+      {/* ─── 1. TOP COMMAND BAR ────────────────────────────────────────── */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: "var(--text)", margin: 0, letterSpacing: "-0.5px" }}>
-            Maintenance Operations Command
+          <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text)", margin: 0, letterSpacing: "-0.4px" }}>
+            Maintenance Command Center
           </h1>
-          <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "4px 0 0 0" }}>
-            Real-time work orders dispatched by Safety Officers · Telemetry diagnostics &amp; LOTO clearance
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "3px 0 0 0" }}>
+            Plant Sector 4 · Work Orders, LOTO Permits &amp; Sensor Telemetry
           </p>
         </div>
 
-        {/* View Mode Tabs */}
-        <div style={{ display: "flex", backgroundColor: "var(--surface-subtle)", padding: 4, borderRadius: 10, border: "1px solid var(--border)" }}>
+        {/* View Mode Navigation Pills */}
+        <div style={{ display: "flex", backgroundColor: "var(--surface-subtle)", padding: 3, borderRadius: 8, border: "1px solid var(--border)" }}>
           {[
             { id: "desk", label: "Operations Desk" },
             { id: "orders", label: `Work Orders (${orders.length})` },
             { id: "telemetry", label: "Fleet Telemetry" },
             { id: "loto", label: "LOTO Permits" },
+            { id: "clearance", label: "Sign-Off" },
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => changeTab(tab.id as any)}
               style={{
-                padding: "8px 16px",
-                borderRadius: 7,
-                fontSize: 13,
+                padding: "6px 14px",
+                borderRadius: 6,
+                fontSize: 12,
                 fontWeight: activeTab === tab.id ? 700 : 500,
-                color: activeTab === tab.id ? "#0F172A" : "var(--text-muted)",
+                color: activeTab === tab.id ? "#0A192F" : "var(--text-muted)",
                 backgroundColor: activeTab === tab.id ? "#FFFFFF" : "transparent",
                 border: "none",
                 cursor: "pointer",
-                boxShadow: activeTab === tab.id ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
+                boxShadow: activeTab === tab.id ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                 transition: "all 0.15s ease",
               }}
             >
@@ -294,353 +273,432 @@ export default function MaintenancePage() {
         </div>
       </div>
 
-      {/* ─── 2. TOP 4 KPI CARDS (Exact Officer Dashboard Architecture) ─ */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+      {/* ─── 2. REFINED 4 KPI SUMMARY CARDS (Light & Scannable) ───────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         
-        {/* Card 1: Active Work Orders */}
-        <div style={{ ...cardStyle, borderTop: "4px solid #0A192F" }}>
+        {/* KPI 1: Active Work Orders */}
+        <div style={{ ...cardStyle, padding: "16px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-light)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
-                Active Work Orders
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-light)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Active Orders
               </div>
-              <div style={{ fontSize: 36, fontWeight: 900, color: "var(--text)", lineHeight: 1 }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: "var(--text)", lineHeight: 1.2, marginTop: 4 }}>
                 {orders.length}
               </div>
-              <div style={{ fontSize: 12, color: "#15803D", marginTop: 8, fontWeight: 600 }}>
-                1 in progress · 3 queued
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                1 in repair · 3 queued
               </div>
             </div>
-            <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: "var(--surface-subtle)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Wrench style={{ width: 20, height: 20, color: "#0F172A" }} />
+            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: "var(--surface-subtle)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Wrench style={{ width: 17, height: 17, color: "#0A192F" }} />
             </div>
           </div>
         </div>
 
-        {/* Card 2: Critical Precursors */}
-        <div style={{ ...cardStyle, borderTop: "4px solid #B91C1C" }}>
+        {/* KPI 2: Critical Items */}
+        <div style={{ ...cardStyle, padding: "16px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-light)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
-                Critical SIF Items
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-light)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Critical SIF
               </div>
-              <div style={{ fontSize: 36, fontWeight: 900, color: "#B91C1C", lineHeight: 1 }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: "#B91C1C", lineHeight: 1.2, marginTop: 4 }}>
                 {orders.filter((o) => o.severity === "critical").length}
               </div>
-              <div style={{ fontSize: 12, color: "#B91C1C", marginTop: 8, fontWeight: 600 }}>
-                High-priority fall &amp; leak risks
+              <div style={{ fontSize: 11, color: "#B91C1C", marginTop: 4, fontWeight: 600 }}>
+                Immediate action
               </div>
             </div>
-            <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: "#FEF2F2", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <AlertTriangle style={{ width: 20, height: 20, color: "#B91C1C" }} />
+            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: "#FEF2F2", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <AlertTriangle style={{ width: 17, height: 17, color: "#B91C1C" }} />
             </div>
           </div>
         </div>
 
-        {/* Card 3: LOTO Isolations */}
-        <div style={{ ...cardStyle, borderTop: "4px solid #EA580C" }}>
+        {/* KPI 3: LOTO Permits */}
+        <div style={{ ...cardStyle, padding: "16px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-light)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
-                Active LOTO Permits
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-light)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                LOTO Permits
               </div>
-              <div style={{ fontSize: 36, fontWeight: 900, color: "var(--text)", lineHeight: 1 }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: "var(--text)", lineHeight: 1.2, marginTop: 4 }}>
                 {INITIAL_LOTO.length}
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8, fontWeight: 600 }}>
-                100% Padlock compliance
+              <div style={{ fontSize: 11, color: "#15803D", marginTop: 4, fontWeight: 600 }}>
+                100% Padlock secure
               </div>
             </div>
-            <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Lock style={{ width: 20, height: 20, color: "#EA580C" }} />
+            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Lock style={{ width: 17, height: 17, color: "#EA580C" }} />
             </div>
           </div>
         </div>
 
-        {/* Card 4: Verified Clearances */}
-        <div style={{ ...cardStyle, borderTop: "4px solid #15803D" }}>
+        {/* KPI 4: Pending Sign-Off */}
+        <div style={{ ...cardStyle, padding: "16px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-light)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
-                Weekly Clearances
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-light)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                OSHA Clearance
               </div>
-              <div style={{ fontSize: 36, fontWeight: 900, color: "#15803D", lineHeight: 1 }}>
-                18
+              <div style={{ fontSize: 28, fontWeight: 900, color: "#15803D", lineHeight: 1.2, marginTop: 4 }}>
+                {orders.filter((o) => o.status === "in_progress" || o.status === "clearance_submitted").length}
               </div>
-              <div style={{ fontSize: 12, color: "#15803D", marginTop: 8, fontWeight: 600 }}>
-                ↑ 100% OSHA 1910 sign-off
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                Ready for verification
               </div>
             </div>
-            <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <CheckCircle2 style={{ width: 20, height: 20, color: "#15803D" }} />
+            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <CheckCircle2 style={{ width: 17, height: 17, color: "#15803D" }} />
             </div>
           </div>
         </div>
 
       </div>
 
-      {/* ─── 3. MAIN WORKSPACE BASED ON ACTIVE TAB ─────────────────────── */}
-      {(activeTab === "desk" || activeTab === "orders") && (
-        <div style={{ display: "grid", gridTemplateColumns: activeTab === "desk" ? "2fr 1fr" : "1fr", gap: 20 }} className="maintenance-content-grid">
+      {/* ─── TAB 1: OPERATIONS DESK (Concise & Focused) ───────────────── */}
+      {activeTab === "desk" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr", gap: 16 }} className="maintenance-content-grid">
           
-          {/* LEFT: Dispatched Work Orders Queue */}
+          {/* LEFT: Quick Action Work Orders */}
           <div style={cardStyle}>
-            
-            {/* Header + Filter Tools */}
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid var(--border)" }}>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", margin: 0 }}>
-                  Officer Dispatches Queue
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", margin: 0 }}>
+                  Active Dispatches
                 </h3>
-                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                  Prioritized by AI severity triage &amp; safety permits
-                </span>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Assigned safety tasks from field officers</span>
               </div>
-
-              {/* Filter Pills */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {[
-                  { id: "all", label: "All" },
-                  { id: "critical", label: "Critical" },
-                  { id: "high", label: "High" },
-                  { id: "in_progress", label: "In Progress" },
-                ].map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setOrderFilter(f.id)}
-                    style={{
-                      padding: "5px 12px",
-                      borderRadius: 16,
-                      fontSize: 12,
-                      fontWeight: orderFilter === f.id ? 700 : 500,
-                      backgroundColor: orderFilter === f.id ? "#0A192F" : "var(--surface)",
-                      color: orderFilter === f.id ? "#FFFFFF" : "var(--text-muted)",
-                      border: `1px solid ${orderFilter === f.id ? "#0A192F" : "var(--border)"}`,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={() => changeTab("orders")}
+                style={{ fontSize: 12, fontWeight: 700, color: "#0A192F", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+              >
+                View Full Queue ({orders.length}) <ChevronRight size={14} />
+              </button>
             </div>
 
-            {/* Orders Table / List */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {filteredOrders.map((order) => {
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {orders.slice(0, 3).map((order) => {
                 const isCrit = order.severity === "critical";
                 const isHigh = order.severity === "high";
-                const sevColor = isCrit ? "#B91C1C" : isHigh ? "#EA580C" : "#CA8A04";
-                const sevBg = isCrit ? "#FEF2F2" : isHigh ? "#FFF7ED" : "#FEFCE8";
+                const sevColor = isCrit ? "#B91C1C" : isHigh ? "#EA580C" : "#475569";
+                const sevBg = isCrit ? "#FEF2F2" : isHigh ? "#FFF7ED" : "var(--surface-subtle)";
 
                 return (
                   <div
                     key={order.id}
                     style={{
-                      backgroundColor: "var(--surface)",
                       border: "1px solid var(--border)",
-                      borderRadius: 10,
-                      padding: "16px",
+                      borderRadius: 8,
+                      padding: "12px 14px",
+                      backgroundColor: "var(--surface)",
                       display: "flex",
-                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "space-between",
                       gap: 12,
-                      transition: "border-color 0.15s ease, box-shadow 0.15s ease",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 12, fontWeight: 800, fontFamily: "monospace", color: "#0F172A", padding: "2px 8px", backgroundColor: "var(--surface-subtle)", borderRadius: 6, border: "1px solid var(--border)" }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#0A192F", fontFamily: "monospace" }}>
                           {order.orderNumber}
                         </span>
-                        <span style={{ fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 6, backgroundColor: sevBg, color: sevColor, textTransform: "uppercase" }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4, backgroundColor: sevBg, color: sevColor, textTransform: "uppercase" }}>
                           {order.severity}
                         </span>
-                        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                          Tag: <strong style={{ color: "var(--text)" }}>{order.equipmentId}</strong>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)" }}>
+                          {order.equipmentId}
                         </span>
                       </div>
-                      <span style={{ fontSize: 12, color: "var(--text-light)" }}>{order.dispatchedAt}</span>
-                    </div>
-
-                    <div>
-                      <h4 style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", margin: "0 0 6px 0", lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {order.title}
-                      </h4>
-                      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>
-                        {order.description}
-                      </p>
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-light)", marginTop: 2 }}>
+                        {order.location} · {order.assignedCrew}
+                      </div>
                     </div>
 
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10, paddingTop: 10, borderTop: "1px solid var(--surface-subtle)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "var(--text-muted)" }}>
-                        <span>Officer: <strong style={{ color: "var(--text)" }}>{order.dispatchedBy.name}</strong></span>
-                        <span>Permit: <code style={{ color: "#0A192F" }}>{order.safetyPermitId}</code></span>
-                        {order.lotoRequired && (
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#EA580C", fontWeight: 700 }}>
-                            <Lock style={{ width: 12, height: 12 }} /> LOTO Active
-                          </span>
-                        )}
+                    <div style={{ flexShrink: 0 }}>
+                      {order.status === "dispatched" && (
+                        <button
+                          onClick={() => handleUpdateStatus(order.id, "in_progress")}
+                          style={{ padding: "6px 12px", backgroundColor: "#0A192F", color: "#FFFFFF", borderRadius: 6, fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer" }}
+                        >
+                          Accept
+                        </button>
+                      )}
+                      {order.status === "in_progress" && (
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          style={{ padding: "6px 12px", backgroundColor: "#15803D", color: "#FFFFFF", borderRadius: 6, fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer" }}
+                        >
+                          Sign-Off
+                        </button>
+                      )}
+                      {order.status === "clearance_submitted" && (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#15803D", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                          <CheckCircle2 size={13} /> Submitted
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* RIGHT: LOTO Snapshot + Telemetry Quick View */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            
+            {/* LOTO Summary */}
+            <div style={cardStyle}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, paddingBottom: 8, borderBottom: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Lock style={{ width: 14, height: 14, color: "#EA580C" }} />
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>Active LOTO Locks</span>
+                </div>
+                <button onClick={() => changeTab("loto")} style={{ fontSize: 11, fontWeight: 700, color: "#0A192F", background: "none", border: "none", cursor: "pointer" }}>
+                  All ({INITIAL_LOTO.length}) →
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {INITIAL_LOTO.map((loto) => (
+                  <div key={loto.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 8px", borderRadius: 6, backgroundColor: "var(--surface-subtle)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{loto.assetTag}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#EA580C", backgroundColor: "#FFF7ED", padding: "1px 5px", borderRadius: 4 }}>
+                        {loto.padlockId}
+                      </span>
+                      <span style={{ fontSize: 10, color: "#15803D", fontWeight: 700 }}>Safe</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Sensor Quick Watch */}
+            <div style={cardStyle}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, paddingBottom: 8, borderBottom: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Radio style={{ width: 14, height: 14, color: "#0A192F" }} />
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>Telemetry Watch</span>
+                </div>
+                <button onClick={() => changeTab("telemetry")} style={{ fontSize: 11, fontWeight: 700, color: "#0A192F", background: "none", border: "none", cursor: "pointer" }}>
+                  All (6) →
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {INITIAL_NODES.slice(0, 3).map((node) => (
+                  <div key={node.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 8px", borderRadius: 6, backgroundColor: "var(--surface-subtle)" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{node.tag} · {node.name.split(" ")[0]}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 11, color: node.vibration > 3 ? "#B91C1C" : "var(--text-muted)", fontWeight: 600 }}>
+                        {node.vibration} mm/s
+                      </span>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: node.status === "critical" ? "#DC2626" : node.status === "warning" ? "#EA580C" : "#15803D" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* ─── TAB 2: WORK ORDERS QUEUE (Light & Filterable) ────────────── */}
+      {activeTab === "orders" && (
+        <div style={cardStyle}>
+          {/* Header Controls */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {[
+                { id: "all", label: `All (${orders.length})` },
+                { id: "critical", label: "Critical" },
+                { id: "high", label: "High" },
+                { id: "in_progress", label: "In Progress" },
+                { id: "clearance_submitted", label: "Sign-Off Ready" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setOrderFilter(f.id)}
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: orderFilter === f.id ? 700 : 500,
+                    backgroundColor: orderFilter === f.id ? "#0A192F" : "var(--surface-subtle)",
+                    color: orderFilter === f.id ? "#FFFFFF" : "var(--text-muted)",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, backgroundColor: "var(--surface-subtle)", padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)" }}>
+              <Search size={14} color="var(--text-muted)" />
+              <input
+                type="text"
+                placeholder="Search orders..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ border: "none", background: "none", fontSize: 12, outline: "none", color: "var(--text)", width: 140 }}
+              />
+            </div>
+          </div>
+
+          {/* Orders List */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {filteredOrders.length === 0 ? (
+              <div style={{ padding: "30px", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+                No work orders matching your filter.
+              </div>
+            ) : (
+              filteredOrders.map((order) => {
+                const isCrit = order.severity === "critical";
+                const isHigh = order.severity === "high";
+                const sevColor = isCrit ? "#B91C1C" : isHigh ? "#EA580C" : "#475569";
+                const sevBg = isCrit ? "#FEF2F2" : isHigh ? "#FFF7ED" : "var(--surface-subtle)";
+
+                return (
+                  <div
+                    key={order.id}
+                    style={{
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                      padding: "14px 16px",
+                      backgroundColor: "var(--surface)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, fontFamily: "monospace", color: "#0A192F" }}>
+                          {order.orderNumber}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4, backgroundColor: sevBg, color: sevColor, textTransform: "uppercase" }}>
+                          {order.severity}
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>
+                          {order.equipmentId}
+                        </span>
+                        <span style={{ fontSize: 12, color: "var(--text-light)" }}>· {order.dispatchedAt}</span>
                       </div>
 
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {order.lotoRequired && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "#EA580C", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                            <Lock size={12} /> LOTO
+                          </span>
+                        )}
                         {order.status === "dispatched" && (
                           <button
                             onClick={() => handleUpdateStatus(order.id, "in_progress")}
-                            style={{ padding: "6px 12px", backgroundColor: "#0A192F", color: "#FFFFFF", borderRadius: 6, fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer" }}
+                            style={{ padding: "5px 12px", backgroundColor: "#0A192F", color: "#FFFFFF", borderRadius: 6, fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer" }}
                           >
-                            Accept &amp; Begin Repair
+                            Accept Repair
                           </button>
                         )}
                         {order.status === "in_progress" && (
                           <button
                             onClick={() => setSelectedOrder(order)}
-                            style={{ padding: "6px 12px", backgroundColor: "#15803D", color: "#FFFFFF", borderRadius: 6, fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer" }}
+                            style={{ padding: "5px 12px", backgroundColor: "#15803D", color: "#FFFFFF", borderRadius: 6, fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer" }}
                           >
-                            Submit Hazard Clearance
+                            Sign-Off Clearance
                           </button>
                         )}
                         {order.status === "clearance_submitted" && (
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#15803D", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                            <CheckCircle2 style={{ width: 14, height: 14 }} /> Clearance Pending Officer Sign-Off
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "#15803D", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <CheckCircle2 size={13} /> Clearance Pending Review
                           </span>
                         )}
                       </div>
                     </div>
 
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>
+                      {order.title}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>
+                      {order.description}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-light)", display: "flex", gap: 14 }}>
+                      <span>Officer: {order.dispatchedBy.name}</span>
+                      <span>Permit: {order.safetyPermitId}</span>
+                      <span>Crew: {order.assignedCrew}</span>
+                    </div>
                   </div>
                 );
-              })}
-            </div>
-
+              })
+            )}
           </div>
-
-          {/* RIGHT COLUMN: Telemetry Snapshot & Active LOTO */}
-          {activeTab === "desk" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              
-              {/* Active LOTO Energy Isolations */}
-              <div style={cardStyle}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid var(--border)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Lock style={{ width: 16, height: 16, color: "#EA580C" }} />
-                    <h3 style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", margin: 0, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                      Active LOTO Isolations
-                    </h3>
-                  </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#15803D" }}>OSHA 1910.147</span>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {INITIAL_LOTO.map((loto) => (
-                    <div key={loto.id} style={{ backgroundColor: "var(--surface-subtle)", borderRadius: 8, padding: "10px 12px", border: "1px solid var(--border)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>{loto.assetTag}</span>
-                        <span style={{ fontSize: 10, fontWeight: 800, backgroundColor: "#FFF7ED", color: "#EA580C", padding: "2px 6px", borderRadius: 4 }}>
-                          {loto.padlockId}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{loto.energyType}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-light)" }}>Locked by {loto.lockedByOfficer}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Equipment Telemetry Alerts Snapshot */}
-              <div style={cardStyle}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid var(--border)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Radio style={{ width: 16, height: 16, color: "#0F172A" }} />
-                    <h3 style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", margin: 0, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                      Plant Telemetry Nodes
-                    </h3>
-                  </div>
-                  <button onClick={() => setActiveTab("telemetry")} style={{ fontSize: 12, fontWeight: 700, color: "#1D4ED8", background: "none", border: "none", cursor: "pointer" }}>
-                    View All →
-                  </button>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {INITIAL_NODES.slice(0, 4).map((node) => (
-                    <div key={node.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: 8, backgroundColor: "var(--surface-subtle)", border: "1px solid var(--border)" }}>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>{node.tag} · {node.name}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                          Vib: <strong style={{ color: node.vibration > 3 ? "#DC2626" : "inherit" }}>{node.vibration} mm/s</strong> · Temp: {node.temperature}°C
-                        </div>
-                      </div>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: node.status === "critical" ? "#DC2626" : node.status === "warning" ? "#EA580C" : "#15803D" }} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          )}
-
         </div>
       )}
 
-      {/* ─── 4. FULL FLEET TELEMETRY MATRIX TAB ───────────────────────── */}
+      {/* ─── TAB 3: FLEET TELEMETRY (Clean Matrix) ────────────────────── */}
       {activeTab === "telemetry" && (
         <div style={cardStyle}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, paddingBottom: 14, borderBottom: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--border)" }}>
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", margin: 0 }}>
-                Equipment Fleet Telemetry Matrix
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", margin: 0 }}>
+                Equipment Telemetry Matrix
               </h3>
-              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                Continuous Modbus/OPC-UA vibration, thermal, and pressure sensors
-              </span>
+              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Continuous vibration, thermal &amp; pressure readings</span>
             </div>
-            <button style={{ padding: "8px 14px", backgroundColor: "#0A192F", color: "white", borderRadius: 8, fontSize: 13, fontWeight: 700, border: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <RefreshCw style={{ width: 14, height: 14 }} /> Refresh Sensors
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#15803D", fontWeight: 700 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#15803D", display: "inline-block" }} />
+              6 Sensored Nodes Live
+            </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
             {INITIAL_NODES.map((node) => {
               const isCrit = node.status === "critical";
               const isWarn = node.status === "warning";
               const statusColor = isCrit ? "#DC2626" : isWarn ? "#EA580C" : "#15803D";
+              const statusBg = isCrit ? "#FEF2F2" : isWarn ? "#FFF7ED" : "#F0FDF4";
 
               return (
-                <div key={node.id} style={{ backgroundColor: "var(--surface)", border: `1.5px solid ${isCrit ? "#FECACA" : "var(--border)"}`, borderRadius: 12, padding: "18px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                <div key={node.id} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: "14px", backgroundColor: "var(--surface)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                     <div>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-light)", textTransform: "uppercase" }}>{node.type}</span>
-                      <h4 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", margin: "2px 0 0 0" }}>
-                        {node.tag} · {node.name}
-                      </h4>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-light)" }}>{node.tag}</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>{node.name}</div>
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 6, backgroundColor: isCrit ? "#FEF2F2" : isWarn ? "#FFF7ED" : "#F0FDF4", color: statusColor }}>
-                      {node.status.toUpperCase()}
+                    <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 4, backgroundColor: statusBg, color: statusColor, textTransform: "uppercase" }}>
+                      {node.status}
                     </span>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, padding: "12px", backgroundColor: "var(--surface-subtle)", borderRadius: 8 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, padding: "8px 10px", backgroundColor: "var(--surface-subtle)", borderRadius: 6, textAlign: "center" }}>
                     <div>
-                      <div style={{ fontSize: 10, color: "var(--text-light)", fontWeight: 700 }}>VIBRATION</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: node.vibration > 3 ? "#DC2626" : "var(--text)", marginTop: 2 }}>{node.vibration} mm/s</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "var(--text-light)" }}>VIB</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: node.vibration > 3 ? "#DC2626" : "var(--text)", marginTop: 2 }}>{node.vibration} mm/s</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, color: "var(--text-light)", fontWeight: 700 }}>TEMP</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", marginTop: 2 }}>{node.temperature}°C</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "var(--text-light)" }}>TEMP</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", marginTop: 2 }}>{node.temperature}°C</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, color: "var(--text-light)", fontWeight: 700 }}>PRESSURE</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", marginTop: 2 }}>{node.pressure} PSI</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 10, color: "var(--text-light)", fontWeight: 700 }}>ACOUSTIC</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", marginTop: 2 }}>{node.acousticIndex} dB</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "var(--text-light)" }}>PRESSURE</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", marginTop: 2 }}>{node.pressure} PSI</div>
                     </div>
                   </div>
 
                   {node.activeOrderId && (
-                    <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span>Active Work Order: <strong style={{ color: "#0A192F" }}>{node.activeOrderId}</strong></span>
-                      <button onClick={() => { setActiveTab("orders"); setOrderFilter("all"); }} style={{ fontSize: 12, fontWeight: 700, color: "#1D4ED8", background: "none", border: "none", cursor: "pointer" }}>
+                    <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-muted)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>Linked: <strong style={{ color: "#0A192F" }}>{node.activeOrderId}</strong></span>
+                      <button onClick={() => changeTab("orders")} style={{ fontSize: 11, fontWeight: 700, color: "#0A192F", background: "none", border: "none", cursor: "pointer" }}>
                         View Order →
                       </button>
                     </div>
@@ -652,51 +710,49 @@ export default function MaintenancePage() {
         </div>
       )}
 
-      {/* ─── 5. FULL LOTO SAFETY PERMITS TAB ──────────────────────────── */}
+      {/* ─── TAB 4: LOTO SAFETY PERMITS (Clean Register) ──────────────── */}
       {activeTab === "loto" && (
         <div style={cardStyle}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, paddingBottom: 14, borderBottom: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--border)" }}>
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", margin: 0 }}>
-                Lockout / Tagout (LOTO) Permit Registry
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", margin: 0 }}>
+                Lockout / Tagout (LOTO) Register
               </h3>
-              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                OSHA 1910.147 Control of Hazardous Energy Safety Lock Handshakes
-              </span>
+              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>OSHA 1910.147 Control of Hazardous Energy Checklist</span>
             </div>
-            <span style={{ fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 6, backgroundColor: "#F0FDF4", color: "#15803D", border: "1px solid #BBF7D0" }}>
-              ALL PADLOCKS ACCOUNTED FOR
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4, backgroundColor: "#F0FDF4", color: "#15803D" }}>
+              All 3 Locks Active &amp; Safe
             </span>
           </div>
 
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "left" }}>
               <thead>
-                <tr style={{ borderBottom: "2px solid var(--border)", color: "var(--text-light)" }}>
-                  <th style={{ padding: "10px" }}>PERMIT TAG</th>
-                  <th style={{ padding: "10px" }}>ASSET</th>
-                  <th style={{ padding: "10px" }}>ISOLATION POINT</th>
-                  <th style={{ padding: "10px" }}>ENERGY TYPE</th>
-                  <th style={{ padding: "10px" }}>PADLOCK ID</th>
-                  <th style={{ padding: "10px" }}>SAFETY OFFICER</th>
-                  <th style={{ padding: "10px" }}>STATUS</th>
+                <tr style={{ borderBottom: "1.5px solid var(--border)", color: "var(--text-light)" }}>
+                  <th style={{ padding: "8px 10px" }}>PERMIT</th>
+                  <th style={{ padding: "8px 10px" }}>ASSET</th>
+                  <th style={{ padding: "8px 10px" }}>ISOLATION POINT</th>
+                  <th style={{ padding: "8px 10px" }}>ENERGY HAZARD</th>
+                  <th style={{ padding: "8px 10px" }}>PADLOCK #</th>
+                  <th style={{ padding: "8px 10px" }}>OFFICER</th>
+                  <th style={{ padding: "8px 10px" }}>STATUS</th>
                 </tr>
               </thead>
               <tbody>
                 {INITIAL_LOTO.map((loto) => (
                   <tr key={loto.id} style={{ borderBottom: "1px solid var(--border)", color: "var(--text)" }}>
-                    <td style={{ padding: "12px 10px", fontWeight: 700, fontFamily: "monospace" }}>{loto.tagNumber}</td>
-                    <td style={{ padding: "12px 10px", fontWeight: 700 }}>{loto.assetTag}</td>
-                    <td style={{ padding: "12px 10px", color: "var(--text-muted)" }}>{loto.isolationPoint}</td>
-                    <td style={{ padding: "12px 10px" }}>{loto.energyType}</td>
-                    <td style={{ padding: "12px 10px" }}>
+                    <td style={{ padding: "10px", fontWeight: 700, fontFamily: "monospace" }}>{loto.tagNumber}</td>
+                    <td style={{ padding: "10px", fontWeight: 700 }}>{loto.assetTag}</td>
+                    <td style={{ padding: "10px", color: "var(--text-muted)" }}>{loto.isolationPoint}</td>
+                    <td style={{ padding: "10px" }}>{loto.energyType}</td>
+                    <td style={{ padding: "10px" }}>
                       <span style={{ padding: "2px 6px", borderRadius: 4, backgroundColor: "#FFF7ED", color: "#EA580C", fontWeight: 700, fontSize: 11 }}>
                         {loto.padlockId}
                       </span>
                     </td>
-                    <td style={{ padding: "12px 10px", color: "var(--text-muted)" }}>{loto.lockedByOfficer}</td>
-                    <td style={{ padding: "12px 10px" }}>
-                      <span style={{ padding: "2px 8px", borderRadius: 10, backgroundColor: "#F0FDF4", color: "#15803D", fontWeight: 700, fontSize: 11 }}>
+                    <td style={{ padding: "10px", color: "var(--text-muted)" }}>{loto.lockedByOfficer}</td>
+                    <td style={{ padding: "10px" }}>
+                      <span style={{ padding: "2px 7px", borderRadius: 4, backgroundColor: "#F0FDF4", color: "#15803D", fontWeight: 700, fontSize: 10 }}>
                         {loto.status}
                       </span>
                     </td>
@@ -708,62 +764,158 @@ export default function MaintenancePage() {
         </div>
       )}
 
-      {/* ─── 6. INTERACTIVE CLEARANCE SIGN-OFF MODAL ─────────────────── */}
-      {selectedOrder && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, backgroundColor: "rgba(11, 20, 38, 0.6)", backdropFilter: "blur(4px)" }}>
-          <div style={{ width: "100%", maxWidth: 540, backgroundColor: "var(--surface)", borderRadius: 14, border: "1px solid var(--border)", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", padding: 28 }}>
-            
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+      {/* ─── TAB 5: CLEARANCE SIGN-OFF (Dedicated OSHA Action Desk) ───── */}
+      {activeTab === "clearance" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={cardStyle}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--border)" }}>
               <div>
-                <span style={{ fontSize: 11, fontWeight: 800, color: "#15803D", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  HAZARD MITIGATION SIGN-OFF
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", margin: 0 }}>
+                  Hazard Clearance Sign-Off Desk
+                </h3>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  Lead technician safety sign-off certifying physical repair before returning machinery to operation
                 </span>
-                <h3 style={{ fontSize: 18, fontWeight: 900, color: "var(--text)", margin: "4px 0 0 0" }}>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, backgroundColor: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA" }}>
+                OSHA 1910 COMPLIANCE
+              </span>
+            </div>
+
+            {/* In-Progress Items Ready For Clearance */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", marginBottom: 10 }}>
+                Pending Field Verification ({orders.filter((o) => o.status === "in_progress" || o.status === "clearance_submitted").length})
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {orders
+                  .filter((o) => o.status === "in_progress" || o.status === "clearance_submitted")
+                  .map((order) => (
+                    <div
+                      key={order.id}
+                      style={{
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                        padding: "14px 16px",
+                        backgroundColor: "var(--surface)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#0A192F", fontFamily: "monospace" }}>{order.orderNumber}</span>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text)" }}>{order.equipmentId}</span>
+                          <span style={{ fontSize: 11, color: "var(--text-light)" }}>· Assigned to {order.assignedCrew}</span>
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{order.title}</div>
+                      </div>
+
+                      <div>
+                        {order.status === "in_progress" ? (
+                          <button
+                            onClick={() => setSelectedOrder(order)}
+                            style={{ padding: "8px 16px", backgroundColor: "#15803D", color: "#FFFFFF", borderRadius: 6, fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                          >
+                            <Check size={14} /> Sign Off Clearance
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#15803D", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <CheckCircle2 size={15} /> Clearance Awaiting Officer Verification
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Previously Cleared History */}
+            <div style={{ paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", marginBottom: 10 }}>
+                Recently Cleared This Week (2)
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 6, backgroundColor: "var(--surface-subtle)", fontSize: 12 }}>
+                  <div>
+                    <strong>WO-9035</strong> · Flare Stack Pressure Relief Valve Calibration
+                    <div style={{ fontSize: 11, color: "var(--text-light)", marginTop: 2 }}>Certified by Devon Vance · PTW-0850</div>
+                  </div>
+                  <span style={{ fontSize: 11, color: "#15803D", fontWeight: 700 }}>OSHA Signed</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 6, backgroundColor: "var(--surface-subtle)", fontSize: 12 }}>
+                  <div>
+                    <strong>WO-9032</strong> · Crude Transfer Line Safety Eyewash Station Flush
+                    <div style={{ fontSize: 11, color: "var(--text-light)", marginTop: 2 }}>Certified by Devon Vance · PTW-0842</div>
+                  </div>
+                  <span style={{ fontSize: 11, color: "#15803D", fontWeight: 700 }}>OSHA Signed</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── INTERACTIVE MODAL: HAZARD CLEARANCE SIGN-OFF ─────────────── */}
+      {selectedOrder && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, backgroundColor: "rgba(10, 25, 47, 0.6)", backdropFilter: "blur(4px)" }}>
+          <div style={{ width: "100%", maxWidth: 500, backgroundColor: "var(--surface)", borderRadius: 12, border: "1px solid var(--border)", boxShadow: "0 20px 50px rgba(0,0,0,0.25)", padding: 24 }}>
+            
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+              <div>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#15803D", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  SAFETY CLEARANCE SIGN-OFF
+                </span>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", margin: "3px 0 0 0" }}>
                   {selectedOrder.orderNumber} · {selectedOrder.equipmentId}
                 </h3>
               </div>
               <button onClick={() => setSelectedOrder(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-                <X style={{ width: 20, height: 20 }} />
+                <X size={18} />
               </button>
             </div>
 
-            <div style={{ backgroundColor: "var(--surface-subtle)", padding: 14, borderRadius: 8, marginBottom: 16, fontSize: 13, lineHeight: 1.5, color: "var(--text-muted)" }}>
-              <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Work Order Scope:</div>
+            <div style={{ backgroundColor: "var(--surface-subtle)", padding: 12, borderRadius: 6, marginBottom: 14, fontSize: 12, lineHeight: 1.4, color: "var(--text)" }}>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>Work Scope:</div>
               {selectedOrder.title}
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
-                Technician Clearance &amp; Repair Resolution Note:
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+                Resolution Note (Required for OSHA Audit Trail):
               </label>
               <textarea
                 required
                 rows={3}
                 value={clearanceNote}
                 onChange={(e) => setClearanceNote(e.target.value)}
-                placeholder="Describe corrective actions taken (e.g., replaced 3m handrail with OSHA-compliant steel guardrails, verified 200lb lateral load rating)..."
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, outline: "none", boxSizing: "border-box", backgroundColor: "var(--surface)", color: "var(--text)" }}
+                placeholder="Detail physical repair completion (e.g., replaced 3m outer barrier with OSHA steel handrails)..."
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, outline: "none", boxSizing: "border-box", backgroundColor: "var(--surface)", color: "var(--text)" }}
               />
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, backgroundColor: "#FEFCE8", border: "1px solid #FEF08A", marginBottom: 20, fontSize: 12, color: "#854D0E" }}>
-              <ShieldCheck style={{ width: 18, height: 18, color: "#854D0E", flexShrink: 0 }} />
-              <span>Digital clearance certifies that the physical hazard has been rectified and equipment is safe for officer verification.</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 6, backgroundColor: "#FEFCE8", border: "1px solid #FEF08A", marginBottom: 18, fontSize: 11, color: "#854D0E" }}>
+              <ShieldCheck size={16} style={{ flexShrink: 0 }} />
+              <span>Certifies all physical repairs are complete and site is safe for officer verification.</span>
             </div>
 
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={() => setSelectedOrder(null)}
-                style={{ flex: 1, padding: "11px", borderRadius: 8, backgroundColor: "var(--surface)", border: "1.5px solid var(--border)", fontSize: 14, fontWeight: 600, color: "var(--text)", cursor: "pointer" }}
+                style={{ flex: 1, padding: "9px", borderRadius: 6, backgroundColor: "var(--surface)", border: "1px solid var(--border)", fontSize: 13, fontWeight: 600, color: "var(--text)", cursor: "pointer" }}
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleSignOffClearance(selectedOrder.id)}
-                style={{ flex: 2, padding: "11px", borderRadius: 8, backgroundColor: "#0A192F", color: "#FFFFFF", fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                style={{ flex: 2, padding: "9px", borderRadius: 6, backgroundColor: "#0A192F", color: "#FFFFFF", fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
               >
-                <CheckCircle2 style={{ width: 16, height: 16 }} />
-                Submit Hazard Clearance
+                <CheckCircle2 size={15} />
+                Submit Clearance
               </button>
             </div>
 
@@ -771,7 +923,7 @@ export default function MaintenancePage() {
         </div>
       )}
 
-      {/* Responsive adjustments */}
+      {/* Responsive tweaks */}
       <style jsx global>{`
         @media (max-width: 1024px) {
           .maintenance-content-grid {
