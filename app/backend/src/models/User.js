@@ -24,9 +24,12 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
 <<<<<<< HEAD
+<<<<<<< HEAD
       enum: ["worker", "safety_officer", "maintenance", "admin"],
       required: [true, "Role is required"],
 =======
+=======
+>>>>>>> a5952b3 (Login and admin dashboard)
       enum: [
         "admin",
         "safety_officer",
@@ -35,14 +38,21 @@ const userSchema = new mongoose.Schema(
         "manager",
         "technician",
       ],
+<<<<<<< HEAD
+>>>>>>> a5952b3 (Login and admin dashboard)
+=======
 >>>>>>> a5952b3 (Login and admin dashboard)
       default: "worker",
     },
     department: {
       type: String,
 <<<<<<< HEAD
+<<<<<<< HEAD
       trim: true,
       default: null,
+=======
+      default: "Safety Operations",
+>>>>>>> a5952b3 (Login and admin dashboard)
 =======
       default: "Safety Operations",
 >>>>>>> a5952b3 (Login and admin dashboard)
@@ -51,10 +61,13 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
 <<<<<<< HEAD
+<<<<<<< HEAD
     },
     lastLogin: {
       type: Date,
       default: null,
+=======
+>>>>>>> a5952b3 (Login and admin dashboard)
 =======
 >>>>>>> a5952b3 (Login and admin dashboard)
     },
@@ -63,10 +76,14 @@ const userSchema = new mongoose.Schema(
 );
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 // Index for role-based queries
 userSchema.index({ role: 1 });
 
 module.exports = mongoose.model("User", userSchema, "userinfo");
+=======
+module.exports = mongoose.model("User", userSchema, "userinfo");
+>>>>>>> a5952b3 (Login and admin dashboard)
 =======
 module.exports = mongoose.model("User", userSchema, "userinfo");
 >>>>>>> a5952b3 (Login and admin dashboard)

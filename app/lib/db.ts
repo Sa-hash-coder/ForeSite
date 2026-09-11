@@ -1,19 +1,18 @@
 import mongoose from "mongoose";
 
-const MONGO_URI =
-  process.env.MONGO_URI ||
-  "mongodb+srv://anikettiwari25000_db_user:sihhackathonforesite2026@cluster0.7kwyqof.mongodb.net/";
+const MONGO_URI = process.env.MONGO_URI;
 
-/**
- * Global is used here to maintain a cached connection across hot-reloads
- * in development in Next.js.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+if (!MONGO_URI) {
+  throw new Error("MONGO_URI is not defined");
+}
+
 let cached = (global as any).mongoose;
 
 if (!cached) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  cached = (global as any).mongoose = { conn: null, promise: null };
+  cached = (global as any).mongoose = {
+    conn: null,
+    promise: null,
+  };
 }
 
 export async function connectToDatabase() {
@@ -22,21 +21,11 @@ export async function connectToDatabase() {
   }
 
   if (!cached.promise) {
-    const opts = {
+    cached.promise = mongoose.connect(MONGO_URI, {
       bufferCommands: false,
-    };
-
-    cached.promise = mongoose.connect(MONGO_URI, opts).then((m) => {
-      return m;
     });
   }
 
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
-
+  cached.conn = await cached.promise;
   return cached.conn;
 }
