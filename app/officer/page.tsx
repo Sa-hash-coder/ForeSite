@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, CSSProperties } from 'react';
+import { getDashboardStatsApi, getAllReportsApi } from '@/app/lib/api';
 import Link from 'next/link';
 import {
   MOCK_REPORTS,
@@ -72,10 +73,25 @@ function SkeletonCard({ h = 140 }: { h?: number }) {
 
 export default function OfficerOverview() {
   const [loading, setLoading] = useState(true);
+  const [liveStats, setLiveStats] = useState<any>(null);
+  const [liveReports, setLiveReports] = useState<any[]>([]);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(t);
+    async function loadData() {
+      try {
+        const [statsRes, reportsRes] = await Promise.all([
+          getDashboardStatsApi().catch(() => null),
+          getAllReportsApi({ limit: 10 }).catch(() => null),
+        ]);
+        if (statsRes?.data) setLiveStats(statsRes.data);
+        if (reportsRes?.data && reportsRes.data.length > 0) setLiveReports(reportsRes.data);
+      } catch (err) {
+        console.warn("Using offline mock data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
   }, []);
 
   if (loading) {
@@ -105,9 +121,11 @@ export default function OfficerOverview() {
     padding: '24px',
   };
 
-  const recentReports = [...MOCK_REPORTS].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  ).slice(0, 5);
+  const recentReports = liveReports.length > 0
+    ? liveReports.slice(0, 5)
+    : [...MOCK_REPORTS].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ).slice(0, 5);
 
   const topAlerts = ACTIVE_ALERTS.filter(a => !a.acknowledged).slice(0, 3);
 
@@ -127,7 +145,7 @@ export default function OfficerOverview() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Total Reports</div>
-              <div style={{ fontSize: 42, fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>47</div>
+              <div style={{ fontSize: 42, fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>{liveStats?.stats?.totalReports ?? 47}</div>
               <div style={{ fontSize: 13, color: '#16a34a', marginTop: 8, fontWeight: 600 }}>↑ 12% vs last month</div>
             </div>
             <div style={{ color: 'var(--primary)', opacity: 0.8 }}>
@@ -141,7 +159,7 @@ export default function OfficerOverview() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Critical / High</div>
-              <div style={{ fontSize: 42, fontWeight: 800, color: 'var(--danger)', lineHeight: 1 }}>8</div>
+              <div style={{ fontSize: 42, fontWeight: 800, color: 'var(--danger)', lineHeight: 1 }}>{liveStats?.stats?.criticalAlerts ?? 8}</div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>Requires immediate action</div>
             </div>
             <div style={{ color: 'var(--danger)', opacity: 0.8 }}>
@@ -155,7 +173,7 @@ export default function OfficerOverview() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Pending Review</div>
-              <div style={{ fontSize: 42, fontWeight: 800, color: 'var(--warning)', lineHeight: 1 }}>13</div>
+              <div style={{ fontSize: 42, fontWeight: 800, color: 'var(--warning)', lineHeight: 1 }}>{liveStats?.stats?.openTasks ?? 13}</div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>Awaiting assessment</div>
             </div>
             <div style={{ color: 'var(--warning)', opacity: 0.8 }}>

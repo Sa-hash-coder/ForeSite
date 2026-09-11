@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getMyReportsApi } from "@/app/lib/api";
 import Link from "next/link";
 import { MOCK_REPORTS } from "@/app/lib/mockData";
 import { useLanguage } from "@/app/lib/LanguageContext";
@@ -9,7 +10,21 @@ import DangerBadge from "@/app/components/DangerBadge";
 
 export default function MyReportsPage() {
   const { lang, t } = useLanguage();
-  const [reports] = useState(MOCK_REPORTS);
+  const [reports, setReports] = useState<any[]>(MOCK_REPORTS);
+
+  useEffect(() => {
+    async function loadReports() {
+      try {
+        const res = await getMyReportsApi();
+        if (res.data && res.data.length > 0) {
+          setReports(res.data);
+        }
+      } catch (err) {
+        console.warn("Using cached reports:", err);
+      }
+    }
+    loadReports();
+  }, []);
   const [filter, setFilter] = useState("");
 
   const statusFilters = [

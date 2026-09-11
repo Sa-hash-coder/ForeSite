@@ -10,6 +10,8 @@ import {
   BookOpen, Download, Layers
 } from "lucide-react";
 import ThemeToggle from "./components/ThemeToggle";
+import { loginApi, registerApi } from "@/app/lib/api";
+import { saveAuth } from "@/app/lib/auth";
 
 type Role = "worker" | "officer" | "maintenance" | null;
 type Tab = "login" | "signup";
@@ -46,24 +48,59 @@ export default function ForeSiteLanding() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
   const [activeNav, setActiveNav] = useState("Home");
 
   const openAuth = (tab: Tab, role?: Role) => {
     setActiveTab(tab);
     if (role) setSelectedRole(role);
+    setAuthError("");
     setAuthOpen(true);
+  };
+
+  const fillDemoAccount = (role: "worker" | "officer" | "maintenance") => {
+    setSelectedRole(role);
+    setEmail(role === "worker" ? "worker@plant.com" : role === "officer" ? "officer@plant.com" : "maintenance@plant.com");
+    setPassword("password123");
+    setAuthError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRole) return;
+    setAuthError("");
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    if (selectedRole === "worker") router.push("/worker");
-    else if (selectedRole === "officer") router.push("/officer");
-    else if (selectedRole === "maintenance") router.push("/maintenance");
-    else router.push("/worker");
-    setIsLoading(false);
+    try {
+      if (activeTab === "login") {
+        const res = await loginApi(email.trim(), password);
+        saveAuth(res.data.token, res.data.user);
+        setAuthOpen(false);
+        const userRole = res.data.user.role;
+        if (userRole === "officer" || userRole === "safety_officer") router.push("/officer");
+        else if (userRole === "maintenance") router.push("/maintenance");
+        else router.push("/worker");
+      } else {
+        if (!selectedRole) {
+          setAuthError("Please select your operational role (Worker, Officer, or Maintain).");
+          setIsLoading(false);
+          return;
+        }
+        const res = await registerApi({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+          role: selectedRole,
+        });
+        saveAuth(res.data.token, res.data.user);
+        setAuthOpen(false);
+        if (selectedRole === "officer") router.push("/officer");
+        else if (selectedRole === "maintenance") router.push("/maintenance");
+        else router.push("/worker");
+      }
+    } catch (err: any) {
+      setAuthError(err.message || "Authentication failed. Please verify site credentials.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const navLinks = [
@@ -849,6 +886,23 @@ export default function ForeSiteLanding() {
                   {label}
                 </button>
               ))}
+            </div>
+
+            {authError && (
+              <div style={{ padding: "10px 14px", borderRadius: 8, backgroundColor: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C", fontSize: 13, fontWeight: 600, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 16 }}>⚠</span>
+                <span>{authError}</span>
+              </div>
+            )}
+
+            {/* Quick Demo Autofill Bar */}
+            <div style={{ marginBottom: 16, padding: "8px 10px", borderRadius: 6, backgroundColor: "#F8FAFC", border: "1px dashed #CBD5E1", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11 }}>
+              <span style={{ color: "#64748B", fontWeight: 600 }}>Demo Quick-Fill:</span>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button type="button" onClick={() => fillDemoAccount("worker")} style={{ padding: "2px 6px", borderRadius: 4, border: "1px solid #E2E8F0", background: "white", fontSize: 10, fontWeight: 700, cursor: "pointer", color: "#0F172A" }}>Worker</button>
+                <button type="button" onClick={() => fillDemoAccount("officer")} style={{ padding: "2px 6px", borderRadius: 4, border: "1px solid #E2E8F0", background: "white", fontSize: 10, fontWeight: 700, cursor: "pointer", color: "#0F172A" }}>Officer</button>
+                <button type="button" onClick={() => fillDemoAccount("maintenance")} style={{ padding: "2px 6px", borderRadius: 4, border: "1px solid #E2E8F0", background: "white", fontSize: 10, fontWeight: 700, cursor: "pointer", color: "#0F172A" }}>Maintain</button>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>

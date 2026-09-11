@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, CSSProperties } from 'react';
+import { getAlertsApi, acknowledgeAlertApi } from '@/app/lib/api';
 import Link from 'next/link';
 import { ACTIVE_ALERTS, ActiveAlert } from '@/app/lib/officerMockData';
 
@@ -37,8 +38,31 @@ export default function AlertsPage() {
   const [alerts, setAlerts] = useState<ActiveAlert[]>([...ACTIVE_ALERTS]);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(t);
+    async function loadAlerts() {
+      try {
+        const res = await getAlertsApi();
+        if (res.data && res.data.length > 0) {
+          const mapped: ActiveAlert[] = res.data.map((a: any) => ({
+            _id: a._id,
+            title: a.reportTitle || a.message,
+            category: "machinery" as any,
+            severity: (a.riskLevel?.toLowerCase() === "critical" ? "critical" : "high") as any,
+            riskScore: a.riskScore || 85,
+            zone: "Sector 4",
+            location: "Plant Sector 4 North",
+            timeAgo: "Recently",
+            acknowledged: a.isAcknowledged,
+            submittedBy: "Lead Safety Inspector",
+          }));
+          setAlerts(mapped);
+        }
+      } catch (err) {
+        console.warn("Using offline alerts:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadAlerts();
   }, []);
 
   const filtered = alerts
@@ -50,8 +74,13 @@ export default function AlertsPage() {
 
   const unackCount = alerts.filter(a => !a.acknowledged).length;
 
-  const toggle = (id: string) => {
+  const toggle = async (id: string) => {
     setAlerts(prev => prev.map(a => a._id === id ? { ...a, acknowledged: !a.acknowledged } : a));
+    try {
+      await acknowledgeAlertApi(id, "Safety Officer");
+    } catch (err) {
+      console.warn("Failed to sync acknowledgment:", err);
+    }
   };
 
   const card: CSSProperties = {

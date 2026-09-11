@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { getTasksApi, updateTaskStatusApi } from "@/app/lib/api";
 import {
   Wrench,
   AlertTriangle,
@@ -172,7 +173,7 @@ export default function MaintenancePage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [clearanceNote, setClearanceNote] = useState<string>("");
 
-  // Sync tab with layout events
+  // Sync tab with layout events & load live tasks from DB
   useEffect(() => {
     const handleTab = (e: Event) => {
       const customEvent = e as CustomEvent<string>;
@@ -181,6 +182,36 @@ export default function MaintenancePage() {
       }
     };
     window.addEventListener("maintenance-tab-change", handleTab);
+
+    async function loadTasks() {
+      try {
+        const res = await getTasksApi();
+        if (res.data && res.data.length > 0) {
+          const mapped: DispatchedOrder[] = res.data.map((t: any) => ({
+            id: t._id,
+            orderNumber: t.orderNumber || "WO-9038",
+            title: t.title,
+            equipmentId: t.equipmentId || "TK-80",
+            equipmentName: t.equipmentName || "Plant Equipment",
+            location: t.location || "Plant Sector 4",
+            zone: t.zone || "Zone 4",
+            severity: t.severity || "high",
+            status: t.status || "dispatched",
+            dispatchedBy: t.dispatchedBy || { name: "Officer Command", role: "Safety Lead", badgeId: "SAF-4019" },
+            safetyPermitId: t.safetyPermitId || "PTW-2026-0881",
+            assignedCrew: t.assignedCrew || "Maintenance Crew M-4",
+            dispatchedAt: "Recently",
+            description: t.description,
+            lotoRequired: t.lotoRequired ?? true,
+          }));
+          setOrders(mapped);
+        }
+      } catch (err) {
+        console.warn("Using local orders:", err);
+      }
+    }
+    loadTasks();
+
     return () => window.removeEventListener("maintenance-tab-change", handleTab);
   }, []);
 
@@ -190,15 +221,20 @@ export default function MaintenancePage() {
     window.dispatchEvent(event);
   };
 
-  const handleUpdateStatus = (id: string, nextStatus: OrderStatus) => {
+  const handleUpdateStatus = async (id: string, nextStatus: OrderStatus, note?: string) => {
     setOrders(orders.map((o) => (o.id === id ? { ...o, status: nextStatus } : o)));
     if (selectedOrder && selectedOrder.id === id) {
       setSelectedOrder({ ...selectedOrder, status: nextStatus });
     }
+    try {
+      await updateTaskStatusApi(id, nextStatus, note);
+    } catch (err) {
+      console.warn("Status update persisted locally:", err);
+    }
   };
 
   const handleSignOffClearance = (id: string) => {
-    handleUpdateStatus(id, "clearance_submitted");
+    handleUpdateStatus(id, "clearance_submitted", clearanceNote);
     setSelectedOrder(null);
     setClearanceNote("");
   };
