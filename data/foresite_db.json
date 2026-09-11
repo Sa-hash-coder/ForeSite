@@ -1,0 +1,280 @@
+{
+  "users": [
+    {
+      "_id": "usr_worker_01",
+      "name": "Rajan Mehta",
+      "email": "worker@plant.com",
+      "password": "fb9e86c4ff5df90ba844bd40889a0958:2f80610af156f2107e5126e8e8c1ac484f998062fca96402cce7ea0625b95accb183612fde3ba3793d808083532e8fc2a471faddc7b8fbec9b76d1e5d96afa7c",
+      "role": "worker",
+      "department": "Operations · Boiler Room B",
+      "badgeId": "WRK-1082",
+      "createdAt": "2026-09-11T20:51:23.426Z"
+    },
+    {
+      "_id": "usr_officer_01",
+      "name": "Officer Vikram Sharma",
+      "email": "officer@plant.com",
+      "password": "bdc7f42ea8a3e899813cbde5a3d406fd:830c17b74fefb0b3e3606daf33c90a3ecba96cf6538dfae096e07e8c6b43a728740d6fcd61b13a90c06c882ac40cff1ca9b4c1b1405df5cb6d8903ce97198527",
+      "role": "officer",
+      "department": "HSE Central Command",
+      "badgeId": "SAF-4019",
+      "createdAt": "2026-09-11T20:51:23.426Z"
+    },
+    {
+      "_id": "usr_maint_01",
+      "name": "Devon Vance",
+      "email": "maintenance@plant.com",
+      "password": "182db715acc0d0dde48dbea651cd72a8:d76feec5dfe4302bff082907114805c72e7145e22d0082231e6fe379b6bba16cb500138cd08fad1dd16e94f0e7e459d09b5dd59ac2316beee3425a0fcad5d0e6",
+      "role": "maintenance",
+      "department": "Unit M-4 Reliability Team",
+      "badgeId": "MNT-4401",
+      "createdAt": "2026-09-11T20:51:23.426Z"
+    },
+    {
+      "name": "Sunita Rao",
+      "email": "sunita@plant.com",
+      "password": "abefbf48b9c11f3d457f0495b4a386ed:b1f7858f519c0089854d05456fd906a4811c39fd823c0ed8f0965bb9e6be1a66e8301a8016700a5297c7dc421b3c0284d219cbf928caa23344b04147ac891bba",
+      "role": "worker",
+      "department": "Refinery Line 2",
+      "badgeId": "WRK-6351",
+      "_id": "usr_glhzkbws",
+      "createdAt": "2026-09-11T20:51:38.415Z"
+    },
+    {
+      "name": "Arjun Patel",
+      "email": "arjun.patel@plant.com",
+      "password": "18c1025a176dd8ff4806eebca95bc39d:f6850a8cc8d77234c36aa6103462d1fb50d2625f14bb0950b672722198ba2586ab26212c091f40dcc47b8dd07eb837aa7c657d8cfc6de792e2c63325858afe0b",
+      "role": "worker",
+      "department": "Cracking Unit A",
+      "badgeId": "WRK-9847",
+      "_id": "usr_59433wdk",
+      "createdAt": "2026-09-11T20:54:50.998Z"
+    }
+  ],
+  "reports": [
+    {
+      "title": "Corroded flange line steam leak",
+      "description": "High pressure steam leak observed on flange line TK-80. Fire and burn risk.",
+      "location": "Sector 4 North, Tank Farm",
+      "category": "equipment_failure",
+      "severity": "critical",
+      "risk_score": 82,
+      "risk_level": "CRITICAL",
+      "sif_probability": 0.85,
+      "precursors": [
+        "Working at Height / Unsecured Perimeter",
+        "Direct Line of Fire Exposure"
+      ],
+      "hazards": [
+        "Catastrophic Structural Failure",
+        "Fatal Fall Impact"
+      ],
+      "explanation": "Automated SIF classification calculated risk score 82/100 (CRITICAL) for Sector 4 North, Tank Farm. Priority response mandated under OSHA 1910.",
+      "status": "under_review",
+      "submittedBy": {
+        "_id": "usr_59433wdk",
+        "name": "Arjun Patel",
+        "role": "worker",
+        "department": "Operations"
+      },
+      "_id": "rep_vjq4hcm6",
+      "createdAt": "2026-09-11T20:54:51.057Z",
+      "updatedAt": "2026-09-11T20:54:51.057Z"
+    },
+    {
+      "_id": "rep_001",
+      "title": "TK-80 Scaffolding – Missing handrail & perimeter barrier",
+      "description": "Frontline walkdown noticed 3 meters of perimeter kickboards and outer handrail absent on Tier 3 scaffolding. High fall hazard (SIF Precursor).",
+      "location": "Sector 4 North, Tank Farm",
+      "category": "unsafe_condition",
+      "severity": "critical",
+      "risk_score": 92,
+      "risk_level": "CRITICAL",
+      "sif_probability": 0.88,
+      "precursors": [
+        "Working at Height Exposure",
+        "Missing Fall Restraint Barrier"
+      ],
+      "hazards": [
+        "Fall from Elevation",
+        "Fatal Traumatic Impact"
+      ],
+      "explanation": "Tier 3 elevation lacking certified guardrails poses immediate SIF risk under OSHA 1926.451.",
+      "status": "action_assigned",
+      "submittedBy": {
+        "_id": "usr_worker_01",
+        "name": "Rajan Mehta",
+        "role": "worker",
+        "department": "Boiler Room B"
+      },
+      "createdAt": "2026-09-11T18:51:23.501Z",
+      "updatedAt": "2026-09-11T20:51:23.426Z"
+    },
+    {
+      "_id": "rep_002",
+      "title": "V-204 Hydrocracker – Radial vibration anomaly on bearing",
+      "description": "AI vibration telemetry flagged 4.8 mm/s radial spike on feed pump bearing housing.",
+      "location": "Process Area 2, Hydro Unit",
+      "category": "equipment_failure",
+      "severity": "high",
+      "risk_score": 78,
+      "risk_level": "HIGH",
+      "sif_probability": 0.65,
+      "precursors": [
+        "Rotating Machinery Bearing Failure",
+        "Hydrocarbon Seal Compromise"
+      ],
+      "hazards": [
+        "Mechanical Catastrophic Seizure",
+        "Volatile Fluid Release"
+      ],
+      "explanation": "Excessive vibration exceeds operational baseline threshold of 2.5 mm/s. Immediate balancing under LOTO required.",
+      "status": "action_assigned",
+      "submittedBy": {
+        "_id": "usr_worker_01",
+        "name": "Rajan Mehta",
+        "role": "worker",
+        "department": "Operations"
+      },
+      "createdAt": "2026-09-11T15:51:23.501Z",
+      "updatedAt": "2026-09-11T20:51:23.426Z"
+    },
+    {
+      "_id": "rep_003",
+      "title": "EX-12 Flange Line – Minor oily condensation on lower joint",
+      "description": "Worker walkdown observed slight weeping and oily condensation on lower flange joint.",
+      "location": "Cracking Platform East",
+      "category": "unsafe_condition",
+      "severity": "medium",
+      "risk_score": 45,
+      "risk_level": "MEDIUM",
+      "sif_probability": 0.28,
+      "precursors": [
+        "Flange Gasket Degradation"
+      ],
+      "hazards": [
+        "Fluid Leakage",
+        "Surface Slip"
+      ],
+      "explanation": "Low-pressure condensation detected. Requires torque check and optical gas imaging.",
+      "status": "under_review",
+      "submittedBy": {
+        "_id": "usr_worker_01",
+        "name": "Rajan Mehta",
+        "role": "worker",
+        "department": "Operations"
+      },
+      "createdAt": "2026-09-11T08:51:23.501Z",
+      "updatedAt": "2026-09-11T20:51:23.426Z"
+    }
+  ],
+  "alerts": [
+    {
+      "reportId": "rep_vjq4hcm6",
+      "reportTitle": "Corroded flange line steam leak",
+      "riskLevel": "CRITICAL",
+      "riskScore": 82,
+      "sifProbability": 0.85,
+      "message": "CRITICAL SIF HAZARD: Corroded flange line steam leak at Sector 4 North, Tank Farm",
+      "isAcknowledged": false,
+      "_id": "alt_ljvk7igq",
+      "createdAt": "2026-09-11T20:54:51.058Z"
+    },
+    {
+      "_id": "alt_001",
+      "reportId": "rep_001",
+      "reportTitle": "TK-80 Scaffolding – Missing handrail & perimeter barrier",
+      "riskLevel": "CRITICAL",
+      "riskScore": 92,
+      "sifProbability": 0.88,
+      "message": "CRITICAL SIF PRECURSOR: Working at height without certified perimeter guardrail in Sector 4.",
+      "isAcknowledged": false,
+      "createdAt": "2026-09-11T18:51:23.501Z"
+    },
+    {
+      "_id": "alt_002",
+      "reportId": "rep_002",
+      "reportTitle": "V-204 Hydrocracker – Radial vibration anomaly on bearing",
+      "riskLevel": "HIGH",
+      "riskScore": 78,
+      "sifProbability": 0.65,
+      "message": "HIGH RISK TELEMETRY: 4.8 mm/s radial vibration spike on Hydrocracker Pump C.",
+      "isAcknowledged": true,
+      "acknowledgedBy": "Officer Vikram Sharma",
+      "acknowledgedAt": "2026-09-11T16:51:23.501Z",
+      "createdAt": "2026-09-11T15:51:23.501Z"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Repair Corroded Steam Flange",
+      "description": "Isolate high pressure steam line under LOTO. Replace damaged gasket.",
+      "equipmentId": "TK-80",
+      "equipmentName": "Crude Storage Flange Line",
+      "location": "Sector 4 North",
+      "zone": "Zone 4",
+      "severity": "critical",
+      "status": "clearance_submitted",
+      "assignedCrew": "Unit M-4 Piping & Valves",
+      "dispatchedBy": {
+        "name": "Officer Command",
+        "role": "Safety Supervisor",
+        "badgeId": "SAF-4019"
+      },
+      "safetyPermitId": "PTW-1543",
+      "lotoRequired": true,
+      "reportId": "rep_vjq4hcm6",
+      "orderNumber": "WO-9072",
+      "_id": "tsk_i85qyikh",
+      "createdAt": "2026-09-11T20:54:51.080Z",
+      "updatedAt": "2026-09-11T20:54:52.143Z",
+      "clearanceNote": "Replaced steam gasket with spiral-wound 316SS gasket. Hydro-tested to 150 PSI. Safe for operation."
+    },
+    {
+      "_id": "tsk_001",
+      "orderNumber": "WO-9038",
+      "reportId": "rep_001",
+      "title": "TK-80 Scaffolding – Replace outer handrails & safety gates",
+      "description": "Erect certified 42-inch top-rails, mid-rails, and toe-boards on Tier 3 access walk.",
+      "equipmentId": "TK-80",
+      "equipmentName": "Crude Storage Tank Scaffolding",
+      "location": "Sector 4 North, Tank Farm",
+      "zone": "Zone TF-4",
+      "severity": "critical",
+      "status": "in_progress",
+      "assignedCrew": "Scaffolding & Rigging Team M-4",
+      "dispatchedBy": {
+        "name": "Officer Vikram Sharma",
+        "role": "Lead Safety Supervisor",
+        "badgeId": "SAF-4019"
+      },
+      "safetyPermitId": "PTW-2026-0881",
+      "lotoRequired": true,
+      "createdAt": "2026-09-11T18:51:23.501Z",
+      "updatedAt": "2026-09-11T20:51:23.426Z"
+    },
+    {
+      "_id": "tsk_002",
+      "orderNumber": "WO-9039",
+      "reportId": "rep_002",
+      "title": "V-204 Hydrocracker – Dynamic bearing balance & seal inspection",
+      "description": "Isolate 480V MCC breaker CB-440B under LOTO padlock. Inspect pump bearings.",
+      "equipmentId": "V-204",
+      "equipmentName": "Hydrocracker Reactor Vessel Pump C",
+      "location": "Process Area 2, Hydro Unit",
+      "zone": "Zone PR-2",
+      "severity": "high",
+      "status": "dispatched",
+      "assignedCrew": "Rotating Machinery Team M-4",
+      "dispatchedBy": {
+        "name": "Officer Priya Patel",
+        "role": "Operations Incident Officer",
+        "badgeId": "SAF-2184"
+      },
+      "safetyPermitId": "PTW-2026-0879",
+      "lotoRequired": true,
+      "createdAt": "2026-09-11T16:51:23.501Z",
+      "updatedAt": "2026-09-11T20:51:23.426Z"
+    }
+  ]
+}

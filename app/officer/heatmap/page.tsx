@@ -1,66 +1,129 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from "react";
 import {
   REFINERY_FACILITY_UNITS,
   FacilityUnit,
   getUnitRiskColor,
-} from '@/app/lib/refineryMapData';
+} from "@/app/lib/refineryMapData";
+import {
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Maximize2,
+  Eye,
+  EyeOff,
+  Filter,
+  Activity,
+  Flame,
+  AlertTriangle,
+  CheckCircle2,
+  Layers,
+  Search,
+  X,
+  MapPin,
+  Upload,
+  ChevronRight,
+  Wrench,
+  ShieldAlert,
+  Sliders
+} from "lucide-react";
 
-// Helper to generate soft radial gradient heatmap spot
+// Soft radial gradient for thermal plumes
 function getHeatmapRadialGradient(score: number): string {
   if (score >= 80) {
-    return 'radial-gradient(circle, rgba(220, 38, 38, 0.75) 0%, rgba(220, 38, 38, 0.4) 40%, rgba(0, 0, 0, 0) 70%)';
+    return "radial-gradient(circle, rgba(220, 38, 38, 0.72) 0%, rgba(220, 38, 38, 0.35) 45%, rgba(0, 0, 0, 0) 75%)";
   } else if (score >= 60) {
-    return 'radial-gradient(circle, rgba(234, 88, 12, 0.65) 0%, rgba(234, 88, 12, 0.3) 45%, rgba(0, 0, 0, 0) 75%)';
+    return "radial-gradient(circle, rgba(234, 88, 12, 0.6) 0%, rgba(234, 88, 12, 0.28) 45%, rgba(0, 0, 0, 0) 75%)";
   } else if (score >= 40) {
-    return 'radial-gradient(circle, rgba(217, 119, 6, 0.5) 0%, rgba(217, 119, 6, 0.2) 50%, rgba(0, 0, 0, 0) 80%)';
+    return "radial-gradient(circle, rgba(217, 119, 6, 0.45) 0%, rgba(217, 119, 6, 0.18) 50%, rgba(0, 0, 0, 0) 80%)";
   } else {
-    return 'radial-gradient(circle, rgba(34, 197, 94, 0.4) 0%, rgba(34, 197, 94, 0.1) 60%, rgba(0, 0, 0, 0) 90%)';
+    return "radial-gradient(circle, rgba(22, 163, 74, 0.35) 0%, rgba(22, 163, 74, 0.1) 55%, rgba(0, 0, 0, 0) 85%)";
   }
 }
 
-// Professional SVG Icons instead of emojis
-function getSvgIcon(score: number) {
-  if (score >= 80) {
-    return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-        <line x1="12" y1="9" x2="12" y2="13"></line>
-        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-      </svg>
-    );
-  }
-  if (score >= 40) {
-    return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-      </svg>
-    );
-  }
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-    </svg>
-  );
+// Simulated live telemetry generator based on unit risk
+function getUnitTelemetry(unit: FacilityUnit) {
+  const isHigh = unit.riskScore >= 80;
+  const isMed = unit.riskScore >= 60;
+  return {
+    temp: isHigh ? 385 + (unit.riskScore % 30) : isMed ? 240 + (unit.riskScore % 20) : 110 + (unit.riskScore % 15),
+    pressure: isHigh ? (16.4 + (unit.riskScore % 8) * 0.3).toFixed(1) : (7.2 + (unit.riskScore % 5) * 0.2).toFixed(1),
+    vibration: isHigh ? (4.8 + (unit.riskScore % 4) * 0.2).toFixed(1) : (1.6 + (unit.riskScore % 3) * 0.1).toFixed(1),
+    gasPpm: isHigh ? 42 + (unit.riskScore % 18) : isMed ? 14 + (unit.riskScore % 8) : 2,
+  };
 }
 
 export default function HeatmapPage() {
   const [loading, setLoading] = useState(true);
   const [selectedUnit, setSelectedUnit] = useState<FacilityUnit | null>(null);
   const [hoveredUnit, setHoveredUnit] = useState<FacilityUnit | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  
+  // Toggles
+  const [showHeatmap, setShowHeatmap] = useState<boolean>(true);
+  const [showPins, setShowPins] = useState<boolean>(true);
+  const [showTelemetryModal, setShowTelemetryModal] = useState<boolean>(false);
+  const [pinDropMode, setPinDropMode] = useState<boolean>(false);
+  const [sidePanelOpen, setSidePanelOpen] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  const [customMapUrl, setCustomMapUrl] = useState<string>('/refinery_map.jpg');
-  const [customMarkers, setCustomMarkers] = useState<{id: number, x: number, y: number}[]>([]);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [customMapUrl, setCustomMapUrl] = useState<string>("/refinery_map.jpg");
+  const [customMarkers, setCustomMarkers] = useState<{ id: number; x: number; y: number; note: string }[]>([]);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 500);
+    const t = setTimeout(() => setLoading(false), 300);
     return () => clearTimeout(t);
   }, []);
+
+  // Filter units based on selection
+  const filteredUnits = REFINERY_FACILITY_UNITS.filter((u) => {
+    if (activeFilter === "extreme") return u.riskScore >= 80;
+    if (activeFilter === "high") return u.riskScore >= 60 && u.riskScore < 80;
+    if (activeFilter === "moderate") return u.riskScore >= 40 && u.riskScore < 60;
+    if (activeFilter === "low") return u.riskScore < 40;
+    return true;
+  }).filter((u) => {
+    if (!searchQuery) return true;
+    return u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.code.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const handleZoom = (delta: number) => {
+    setZoomLevel((prev) => {
+      const next = Math.min(Math.max(prev + delta, 0.9), 2.2);
+      if (next === 1) setPanOffset({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  const handleReset = () => {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (pinDropMode) return;
+    if ((e.target as HTMLElement).closest(".map-unit-interactive")) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPanOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y,
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
 
   const handleMapUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -69,15 +132,21 @@ export default function HeatmapPage() {
     }
   };
 
-  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest('.map-unit-interactive')) return;
+  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!pinDropMode) return;
+    if ((e.target as HTMLElement).closest(".map-unit-interactive")) return;
 
     if (mapContainerRef.current) {
       const rect = mapContainerRef.current.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 100;
       const y = ((e.clientY - rect.top) / rect.height) * 100;
-      setCustomMarkers([...customMarkers, { id: Date.now(), x, y }]);
+      setCustomMarkers([...customMarkers, { id: Date.now(), x, y, note: "Operator Observation Pin" }]);
     }
+  };
+
+  const focusUnit = (unit: FacilityUnit) => {
+    setSelectedUnit(unit);
+    setSidePanelOpen(true);
   };
 
   const criticalHotspots = [...REFINERY_FACILITY_UNITS]
@@ -86,369 +155,574 @@ export default function HeatmapPage() {
 
   if (loading) {
     return (
-      <div style={{ width: '100%' }}>
-        <div className="skeleton" style={{ height: 32, width: 340, marginBottom: 12, borderRadius: 4 }} />
-        <div className="skeleton" style={{ height: 600, width: '100%', borderRadius: 4 }} />
+      <div style={{ padding: 24 }}>
+        <div style={{ height: 32, width: 280, backgroundColor: "#E2E8F0", borderRadius: 6, marginBottom: 16 }} />
+        <div style={{ height: 600, width: "100%", backgroundColor: "#E2E8F0", borderRadius: 12 }} />
       </div>
     );
   }
 
+  const selectedTelemetry = selectedUnit ? getUnitTelemetry(selectedUnit) : null;
+
   return (
-    <div className="heatmap-layout">
-      {/* Global CSS for layout and styling */}
-      <style jsx global>{`
-        .heatmap-layout {
-          display: grid;
-          grid-template-columns: 280px 1fr 280px;
-          gap: 20px;
-          min-height: calc(100vh - 100px);
-          width: 100%;
-        }
-        .panel-card {
-          background: var(--surface);
-          padding: 20px;
-          border-radius: 16px;
-          border: 1px solid var(--border);
-        }
-        .panel-title {
-          font-size: 14px;
-          font-weight: 700;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          margin-bottom: 16px;
-          letter-spacing: 0.05em;
-        }
-        .map-wrapper {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          min-height: 500px;
-        }
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%" }}>
+
+      {/* ─── 1. TOP HEADER & FILTER BAR ───────────────────────────────── */}
+      <div style={{ backgroundColor: "#ffffff", borderRadius: 14, border: "1px solid #D9DEE7", padding: "18px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
         
-        /* Mobile Operational Styles */
-        @media (max-width: 1100px) {
-          .heatmap-layout {
-            grid-template-columns: 1fr;
-            grid-template-rows: auto auto auto;
-          }
-          .sidebar-left { order: 2; }
-          .sidebar-right { order: 3; }
-          .map-wrapper { order: 1; min-height: 60vh; }
+        {/* Title + Status */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", margin: 0, letterSpacing: "-0.4px" }}>
+              Refinery Facility Heatmap
+            </h1>
+            <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: "#FEF2F2", color: "#DC2626", padding: "3px 8px", borderRadius: 6, border: "1px solid #FECACA" }}>
+              LIVE SENSOR GRID
+            </span>
+          </div>
+          <p style={{ fontSize: 13, color: "#64748B", margin: "4px 0 0 0" }}>
+            Site: Refinery Unit Alpha · Real-time spatial SIF precursor density &amp; asset telemetry
+          </p>
+        </div>
+
+        {/* Search / Jump to Unit */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ position: "relative" }}>
+            <Search style={{ position: "absolute", left: 10, top: 9, width: 15, height: 15, color: "#94A3B8" }} />
+            <input
+              type="text"
+              placeholder="Jump to unit (e.g. FCC, ADU)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ padding: "8px 12px 8px 32px", fontSize: 13, borderRadius: 8, border: "1px solid #D9DEE7", outline: "none", width: 220, backgroundColor: "#F8FAFC" }}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 8, top: 8, background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}>
+                <X style={{ width: 14, height: 14 }} />
+              </button>
+            )}
+          </div>
+
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", backgroundColor: "#FFFFFF", border: "1px solid #D9DEE7", borderRadius: 8, fontSize: 13, fontWeight: 600, color: "#0F172A", cursor: "pointer" }}>
+            <Upload style={{ width: 14, height: 14 }} />
+            <span>Upload Map</span>
+            <input type="file" accept="image/*" onChange={handleMapUpload} style={{ display: "none" }} />
+          </label>
+
+          <button
+            onClick={() => setSidePanelOpen(!sidePanelOpen)}
+            style={{ padding: "8px 14px", backgroundColor: sidePanelOpen ? "#0A192F" : "#FFFFFF", color: sidePanelOpen ? "#FFFFFF" : "#0F172A", border: "1px solid #D9DEE7", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
+          >
+            <Sliders style={{ width: 14, height: 14 }} />
+            <span>{sidePanelOpen ? "Hide Inspector" : "Show Inspector"}</span>
+          </button>
+        </div>
+
+      </div>
+
+      {/* ─── 2. SEVERITY FILTERS & MAP CONTROLS STRIP ─────────────────── */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        
+        {/* Risk Severity Filters */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {[
+            { id: "all", label: "All Units", count: 25, color: "#0F172A" },
+            { id: "extreme", label: "Extreme Risk", count: 4, color: "#DC2626" },
+            { id: "high", label: "High Risk", count: 5, color: "#EA580C" },
+            { id: "moderate", label: "Moderate Risk", count: 6, color: "#D9DEE7" },
+            { id: "low", label: "Low Risk", count: 10, color: "#16A34A" },
+          ].map((f) => {
+            const isActive = activeFilter === f.id;
+            return (
+              <button
+                key={f.id}
+                onClick={() => setActiveFilter(f.id)}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 20,
+                  fontSize: 13,
+                  fontWeight: isActive ? 700 : 500,
+                  backgroundColor: isActive ? "#0A192F" : "#FFFFFF",
+                  color: isActive ? "#FFFFFF" : "#475569",
+                  border: `1.5px solid ${isActive ? "#0A192F" : "#D9DEE7"}`,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span>{f.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 10, backgroundColor: isActive ? "#1E293B" : "#F1F5F9", color: isActive ? "#FFFFFF" : "#64748B" }}>
+                  {f.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Canvas Controls: Zoom, Overlay, Drop Pin */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           
-          /* Combine sidebars on mobile into a 2-col grid if possible */
-          .mobile-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
+          {/* Zoom Buttons */}
+          <div style={{ display: "flex", alignItems: "center", backgroundColor: "#FFFFFF", borderRadius: 8, border: "1px solid #D9DEE7", overflow: "hidden" }}>
+            <button onClick={() => handleZoom(-0.25)} title="Zoom Out" style={{ padding: "7px 10px", background: "none", border: "none", cursor: "pointer", borderRight: "1px solid #E2E8F0" }}>
+              <ZoomOut style={{ width: 16, height: 16, color: "#475569" }} />
+            </button>
+            <span style={{ fontSize: 12, fontWeight: 700, padding: "0 10px", color: "#0F172A", minWidth: 42, textAlign: "center" }}>
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <button onClick={() => handleZoom(0.25)} title="Zoom In" style={{ padding: "7px 10px", background: "none", border: "none", cursor: "pointer", borderLeft: "1px solid #E2E8F0" }}>
+              <ZoomIn style={{ width: 16, height: 16, color: "#475569" }} />
+            </button>
+            <button onClick={handleReset} title="Reset View" style={{ padding: "7px 10px", background: "none", border: "none", cursor: "pointer", borderLeft: "1px solid #E2E8F0" }}>
+              <RotateCcw style={{ width: 15, height: 15, color: "#475569" }} />
+            </button>
+          </div>
+
+          {/* Toggle Heatmap Plumes */}
+          <button
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            style={{ padding: "7px 12px", backgroundColor: showHeatmap ? "#F1F5F9" : "#FFFFFF", border: "1px solid #D9DEE7", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#0F172A", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
+          >
+            <Layers style={{ width: 14, height: 14, color: showHeatmap ? "#1D4ED8" : "#94A3B8" }} />
+            <span>Thermal Plumes</span>
+          </button>
+
+          {/* Pin Drop Mode */}
+          <button
+            onClick={() => setPinDropMode(!pinDropMode)}
+            style={{ padding: "7px 12px", backgroundColor: pinDropMode ? "#EF4444" : "#FFFFFF", color: pinDropMode ? "#FFFFFF" : "#0F172A", border: `1px solid ${pinDropMode ? "#EF4444" : "#D9DEE7"}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
+          >
+            <MapPin style={{ width: 14, height: 14 }} />
+            <span>{pinDropMode ? "Click Map to Pin" : "Drop Pin"}</span>
+          </button>
+
+        </div>
+
+      </div>
+
+      {/* ─── 3. MAIN WORKSPACE: SPACIOUS MAP + INSPECTOR DRAWER ──────── */}
+      <div style={{ display: "grid", gridTemplateColumns: sidePanelOpen ? "1fr 340px" : "1fr", gap: 20, alignItems: "start", transition: "grid-template-columns 0.2s ease" }}>
+        
+        {/* Map Canvas Frame */}
+        <div
+          style={{
+            backgroundColor: "#0B1426",
+            borderRadius: 16,
+            border: "1px solid #D9DEE7",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+            position: "relative",
+            overflow: "hidden",
+            minHeight: 640,
+            cursor: pinDropMode ? "crosshair" : isDragging ? "grabbing" : "grab",
+          }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+        >
+          
+          {/* Inner Zoomable Canvas */}
+          <div
+            ref={mapContainerRef}
+            onClick={handleCanvasClick}
+            style={{
+              position: "relative",
+              width: "100%",
+              height: 640,
+              transform: `scale(${zoomLevel}) translate(${panOffset.x / zoomLevel}px, ${panOffset.y / zoomLevel}px)`,
+              transformOrigin: "center center",
+              transition: isDragging ? "none" : "transform 0.15s ease-out",
+            }}
+          >
+            
+            {/* Background Facility Blueprint Image */}
+            <img
+              src={customMapUrl}
+              alt="Refinery Blueprint"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "fill",
+                display: "block",
+                userSelect: "none",
+                pointerEvents: "none",
+                filter: "brightness(0.9) contrast(1.08)",
+              }}
+            />
+
+            {/* Thermal Heatmap Plumes Overlay */}
+            {showHeatmap && (
+              <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.9 }}>
+                {filteredUnits.map((unit) => {
+                  const centerX = unit.x + unit.w / 2;
+                  const centerY = unit.y + unit.h / 2;
+                  const plumeDiameter = Math.max(unit.w, unit.h) * 2.1;
+                  return (
+                    <div
+                      key={`heat-${unit.id}`}
+                      style={{
+                        position: "absolute",
+                        left: `${centerX}%`,
+                        top: `${centerY}%`,
+                        width: `${plumeDiameter}%`,
+                        paddingTop: `${plumeDiameter * 0.75}%`,
+                        transform: "translate(-50%, -50%)",
+                        background: getHeatmapRadialGradient(unit.riskScore),
+                        borderRadius: "50%",
+                        filter: "blur(7px)",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Operator Custom Incident Markers */}
+            {customMarkers.map((marker) => (
+              <div
+                key={marker.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCustomMarkers(customMarkers.filter((m) => m.id !== marker.id));
+                }}
+                style={{
+                  position: "absolute",
+                  left: `${marker.x}%`,
+                  top: `${marker.y}%`,
+                  transform: "translate(-50%, -100%)",
+                  zIndex: 40,
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ backgroundColor: "#0A192F", color: "white", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", boxShadow: "0 2px 6px rgba(0,0,0,0.4)" }}>
+                  {marker.note}
+                </div>
+                <MapPin style={{ width: 26, height: 26, color: "#EF4444", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }} />
+              </div>
+            ))}
+
+            {/* Clean Non-Overlapping Unit Indicator Pins */}
+            {filteredUnits.map((unit) => {
+              const isSelected = selectedUnit?.id === unit.id;
+              const isHovered = hoveredUnit?.id === unit.id;
+              const centerX = unit.x + unit.w / 2;
+              const centerY = unit.y + unit.h / 2;
+              const color = getUnitRiskColor(unit.riskScore);
+              const isCritical = unit.riskScore >= 80;
+
+              return (
+                <div key={`ui-${unit.id}`} className="map-unit-interactive">
+                  
+                  {/* Pin Element */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      focusUnit(unit);
+                    }}
+                    onMouseEnter={() => setHoveredUnit(unit)}
+                    onMouseLeave={() => setHoveredUnit(null)}
+                    style={{
+                      position: "absolute",
+                      left: `${centerX}%`,
+                      top: `${centerY}%`,
+                      transform: `translate(-50%, -50%) scale(${isSelected ? 1.25 : isHovered ? 1.15 : 1})`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      zIndex: isSelected ? 35 : isHovered ? 34 : 30,
+                      transition: "transform 0.15s ease",
+                    }}
+                  >
+                    
+                    {/* Glowing Pulse Ring for Critical Units */}
+                    {isCritical && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          border: `2px solid ${color}`,
+                          animation: "applePulse 2s ease-in-out infinite",
+                        }}
+                      />
+                    )}
+
+                    {/* Unit Pill Badge */}
+                    <div
+                      style={{
+                        backgroundColor: isSelected ? "#FFFFFF" : "rgba(10, 25, 47, 0.92)",
+                        border: `2px solid ${color}`,
+                        padding: "3px 8px",
+                        borderRadius: 14,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                        boxShadow: "0 3px 10px rgba(0,0,0,0.45)",
+                        backdropFilter: "blur(4px)",
+                      }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: color, display: "inline-block", flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, fontWeight: 800, color: isSelected ? "#0F172A" : "#FFFFFF", letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
+                        {unit.code}
+                      </span>
+                    </div>
+
+                  </div>
+
+                  {/* Floating Hover Card */}
+                  {isHovered && !isSelected && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: `${centerX}%`,
+                        top: `calc(${centerY}% - 22px)`,
+                        transform: "translate(-50%, -100%)",
+                        backgroundColor: "#FFFFFF",
+                        color: "#0F172A",
+                        padding: "12px 14px",
+                        borderRadius: 10,
+                        border: `1.5px solid ${color}`,
+                        boxShadow: "0 10px 28px rgba(0,0,0,0.35)",
+                        zIndex: 60,
+                        pointerEvents: "none",
+                        minWidth: 200,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: "#0F172A" }}>{unit.name}</span>
+                        <span style={{ fontSize: 14, fontWeight: 900, color }}>{unit.riskScore}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>{unit.dominantHazard}</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B" }}>
+                        {unit.incidents} active incidents · Click to inspect
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              );
+            })}
+
+          </div>
+
+          {/* Floating Canvas Footer Scale */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 14,
+              left: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              backgroundColor: "rgba(11, 20, 38, 0.88)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              padding: "8px 16px",
+              borderRadius: 10,
+              backdropFilter: "blur(6px)",
+              color: "white",
+              fontSize: 11,
+              fontWeight: 600,
+              zIndex: 25,
+            }}
+          >
+            <span>RISK LEVEL:</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ color: "#16A34A" }}>LOW</span>
+              <div style={{ width: 120, height: 6, borderRadius: 999, background: "linear-gradient(to right, #16A34A, #D97706, #EA580C, #DC2626)" }} />
+              <span style={{ color: "#DC2626" }}>EXTREME (90+)</span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ─── 4. SIDE INSPECTOR / ANALYTICS DRAWER ─────────────────────── */}
+        {sidePanelOpen && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            
+            {/* When a Unit is Selected: Live Telemetry & Actions */}
+            {selectedUnit ? (
+              <div style={{ backgroundColor: "#FFFFFF", borderRadius: 14, border: "1px solid #D9DEE7", padding: "20px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+                
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                  <div>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "#1D4ED8", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                      FACILITY ASSET TELEMETRY
+                    </span>
+                    <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0F172A", margin: "4px 0 0 0" }}>
+                      {selectedUnit.name}
+                    </h3>
+                  </div>
+                  <button onClick={() => setSelectedUnit(null)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#64748B" }}>
+                    <X style={{ width: 18, height: 18 }} />
+                  </button>
+                </div>
+
+                {/* Score badge */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F8FAFC", padding: "12px 14px", borderRadius: 10, border: "1px solid #E2E8F0", marginBottom: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>Calculated Risk Score</div>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: getUnitRiskColor(selectedUnit.riskScore), lineHeight: 1.1, marginTop: 2 }}>
+                      {selectedUnit.riskScore} <span style={{ fontSize: 13, color: "#64748B", fontWeight: 600 }}>/ 100</span>
+                    </div>
+                  </div>
+                  <span style={{ padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 800, backgroundColor: selectedUnit.riskScore >= 80 ? "#FEF2F2" : "#FFF7ED", color: getUnitRiskColor(selectedUnit.riskScore) }}>
+                    {selectedUnit.status.toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Simulated Live Sensors */}
+                {selectedTelemetry && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+                      LIVE ASSET TELEMETRY
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px" }}>
+                        <div style={{ fontSize: 10, color: "#64748B", fontWeight: 700 }}>TEMPERATURE</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginTop: 2 }}>{selectedTelemetry.temp}°C</div>
+                      </div>
+                      <div style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px" }}>
+                        <div style={{ fontSize: 10, color: "#64748B", fontWeight: 700 }}>PRESSURE</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginTop: 2 }}>{selectedTelemetry.pressure} bar</div>
+                      </div>
+                      <div style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px" }}>
+                        <div style={{ fontSize: 10, color: "#64748B", fontWeight: 700 }}>VIBRATION</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginTop: 2 }}>{selectedTelemetry.vibration} mm/s</div>
+                      </div>
+                      <div style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px" }}>
+                        <div style={{ fontSize: 10, color: "#64748B", fontWeight: 700 }}>GAS (LEL)</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: selectedTelemetry.gasPpm > 25 ? "#DC2626" : "#0F172A", marginTop: 2 }}>{selectedTelemetry.gasPpm} ppm</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dominant Hazard */}
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
+                    IDENTIFIED DOMINANT HAZARD
+                  </div>
+                  <p style={{ fontSize: 13, color: "#334155", lineHeight: 1.5, margin: 0 }}>
+                    {selectedUnit.details}
+                  </p>
+                </div>
+
+                {/* Action CTA buttons */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <a
+                    href="/officer/tasks"
+                    style={{ padding: "10px 14px", backgroundColor: "#0A192F", color: "#FFFFFF", borderRadius: 8, fontSize: 13, fontWeight: 700, textAlign: "center", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                  >
+                    <Wrench style={{ width: 15, height: 15 }} />
+                    Dispatch Maintenance Work Order
+                  </a>
+                  <a
+                    href="/officer/alerts"
+                    style={{ padding: "9px 14px", backgroundColor: "#FFFFFF", color: "#0F172A", border: "1.5px solid #D9DEE7", borderRadius: 8, fontSize: 13, fontWeight: 700, textAlign: "center", textDecoration: "none" }}
+                  >
+                    View All Active Incidents ({selectedUnit.incidents})
+                  </a>
+                </div>
+
+              </div>
+            ) : (
+              /* Default State: Overall Risk Overview & Critical Drivers */
+              <>
+                {/* Overall Score */}
+                <div style={{ backgroundColor: "#FFFFFF", borderRadius: 14, border: "1px solid #D9DEE7", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                    FACILITY OVERALL RISK
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div>
+                      <div style={{ fontSize: 36, fontWeight: 900, color: "#DC2626", lineHeight: 1 }}>
+                        72<span style={{ fontSize: 16, color: "#64748B", fontWeight: 600 }}>/100</span>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginTop: 4 }}>High Risk Facility Alert</div>
+                    </div>
+                    <div style={{ width: 52, height: 52, borderRadius: "50%", backgroundColor: "#FEF2F2", border: "2px solid #FECACA", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <AlertTriangle style={{ width: 24, height: 24, color: "#DC2626" }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Critical Risk Drivers (Clickable) */}
+                <div style={{ backgroundColor: "#FFFFFF", borderRadius: 14, border: "1px solid #D9DEE7", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                    TOP RISK DRIVERS (CLICK TO FOCUS)
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {criticalHotspots.map((unit, idx) => (
+                      <div
+                        key={unit.id}
+                        onClick={() => focusUnit(unit)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "8px 10px",
+                          borderRadius: 8,
+                          backgroundColor: "#F8FAFC",
+                          border: "1px solid #E2E8F0",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                          <span style={{ width: 20, height: 20, borderRadius: 6, backgroundColor: "#DC2626", color: "white", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {idx + 1}
+                          </span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {unit.code} · {unit.name.split("(")[0].trim()}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: "#DC2626", marginLeft: 8 }}>
+                          {unit.riskScore}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recommended Mitigations */}
+                <div style={{ backgroundColor: "#FFFFFF", borderRadius: 14, border: "1px solid #D9DEE7", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                    RECOMMENDED ACTIONS
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "#475569", display: "flex", flexDirection: "column", gap: 8, lineHeight: 1.5 }}>
+                    <li>Isolate FCC slide valve and schedule emergency inspection.</li>
+                    <li>Deploy thermal monitoring drones to ADU fractionation column.</li>
+                    <li>Review LOTO procedures in active high-risk zones.</li>
+                  </ul>
+                </div>
+              </>
+            )}
+
+          </div>
+        )}
+
+      </div>
+
+      {/* Animation Styles */}
+      <style jsx global>{`
+        @keyframes applePulse {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.9;
+          }
+          50% {
+            transform: scale(1.6);
+            opacity: 0.2;
           }
         }
       `}</style>
 
-      {/* ─── Left Sidebar ─────────────────────────────────────────── */}
-      <div className="sidebar-left mobile-grid">
-        <div className="panel-card" style={{ marginBottom: 20 }}>
-          <h3 className="panel-title">Overall Risk Score</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: 140, height: 70, overflow: 'hidden', marginBottom: 12 }}>
-              <div style={{ 
-                position: 'absolute', top: 0, left: 0, width: 140, height: 140, 
-                borderRadius: '50%', border: '15px solid var(--surface-subtle)', borderBottomColor: 'transparent', borderRightColor: 'transparent',
-                transform: 'rotate(45deg)' 
-              }}></div>
-              <div style={{ 
-                position: 'absolute', top: 0, left: 0, width: 140, height: 140, 
-                borderRadius: '50%', border: '15px solid var(--danger)', borderBottomColor: 'transparent', borderRightColor: 'transparent',
-                transform: 'rotate(100deg)',
-                transition: 'transform 1s ease'
-              }}></div>
-            </div>
-            <div style={{ fontSize: 42, fontWeight: 900, color: 'var(--danger)', lineHeight: 1 }}>
-              72<span style={{ fontSize: 16, color: 'var(--text-muted)' }}>/100</span>
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginTop: 8 }}>High Risk</div>
-          </div>
-        </div>
-
-        <div className="panel-card">
-          <h3 className="panel-title">Risk Level Legend</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ width: 12, height: 12, backgroundColor: '#dc2626', borderRadius: 2 }}></span> 
-              <span style={{ fontSize: 14, color: 'var(--text)' }}>Extreme Risk</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ width: 12, height: 12, backgroundColor: '#ea580c', borderRadius: 2 }}></span> 
-              <span style={{ fontSize: 14, color: 'var(--text)' }}>High Risk</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ width: 12, height: 12, backgroundColor: '#d97706', borderRadius: 2 }}></span> 
-              <span style={{ fontSize: 14, color: 'var(--text)' }}>Moderate Risk</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ width: 12, height: 12, backgroundColor: '#16a34a', borderRadius: 2 }}></span> 
-              <span style={{ fontSize: 14, color: 'var(--text)' }}>Low Risk</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Center Map Canvas ─────────────────────────────────────────── */}
-      <div className="map-wrapper">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-           <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-              Click anywhere on the map to add a custom marker.
-           </div>
-           <div>
-              <label style={{ 
-                background: 'var(--primary)', color: '#fff', padding: '8px 16px', 
-                borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                display: 'inline-block'
-              }}>
-                Upload Custom Map
-                <input type="file" accept="image/*" onChange={handleMapUpload} style={{ display: 'none' }} />
-              </label>
-           </div>
-        </div>
-
-        <div
-          ref={mapContainerRef}
-          onClick={handleMapClick}
-          style={{
-            position: 'relative',
-            width: '100%',
-            flex: 1,
-            borderRadius: 16,
-            overflow: 'hidden',
-            border: '1px solid var(--border)',
-            background: '#090d16',
-            cursor: 'crosshair',
-          }}
-        >
-          <img
-            src={customMapUrl}
-            alt="Refinery Map"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-              userSelect: 'none',
-              filter: 'brightness(0.85) contrast(1.1)',
-            }}
-          />
-
-          <div style={{
-            position: 'absolute', inset: 0, 
-            pointerEvents: 'none',
-            opacity: 0.95,
-          }}>
-            {REFINERY_FACILITY_UNITS.map((unit) => {
-              const centerX = unit.x + unit.w / 2;
-              const centerY = unit.y + unit.h / 2;
-              const plumeDiameter = Math.max(unit.w, unit.h) * 2.2;
-              return (
-                <div
-                  key={`heat-${unit.id}`}
-                  style={{
-                    position: 'absolute',
-                    left: `${centerX}%`,
-                    top: `${centerY}%`,
-                    width: `${plumeDiameter}%`,
-                    paddingTop: `${plumeDiameter * 0.8}%`,
-                    transform: 'translate(-50%, -50%)',
-                    background: getHeatmapRadialGradient(unit.riskScore),
-                    borderRadius: '50%',
-                    filter: 'blur(8px)', 
-                  }}
-                />
-              );
-            })}
-          </div>
-
-          {customMarkers.map((marker) => (
-             <div
-               key={marker.id}
-               style={{
-                 position: 'absolute',
-                 left: `${marker.x}%`,
-                 top: `${marker.y}%`,
-                 transform: 'translate(-50%, -50%)',
-                 zIndex: 40,
-                 cursor: 'pointer',
-               }}
-               onClick={(e) => {
-                 e.stopPropagation();
-                 setCustomMarkers(customMarkers.filter(m => m.id !== marker.id));
-               }}
-             >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--primary)" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-             </div>
-          ))}
-
-          {REFINERY_FACILITY_UNITS.map((unit) => {
-            const isSelected = selectedUnit?.id === unit.id;
-            const isHovered = hoveredUnit?.id === unit.id;
-            const centerX = unit.x + unit.w / 2;
-            const centerY = unit.y + unit.h / 2;
-            
-            const shortName = unit.name.split('(')[0].trim().toUpperCase();
-
-            return (
-              <div key={`ui-${unit.id}`} className="map-unit-interactive">
-                <div
-                  onClick={() => setSelectedUnit(isSelected ? null : unit)}
-                  onMouseEnter={() => setHoveredUnit(unit)}
-                  onMouseLeave={() => setHoveredUnit(null)}
-                  style={{
-                    position: 'absolute',
-                    left: `${centerX}%`,
-                    top: `${centerY}%`,
-                    transform: 'translate(-50%, -50%)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 4,
-                    cursor: 'pointer',
-                    zIndex: 30,
-                  }}
-                >
-                  <div style={{
-                    background: 'rgba(15, 23, 42, 0.75)',
-                    border: `1px solid ${getUnitRiskColor(unit.riskScore)}`,
-                    padding: '4px 8px',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-                    backdropFilter: 'blur(4px)'
-                  }}>
-                    {getSvgIcon(unit.riskScore)}
-                    <span style={{ 
-                      fontSize: 'clamp(10px, 1.2vw, 13px)', 
-                      fontWeight: 700, 
-                      color: '#ffffff',
-                      lineHeight: 1
-                    }}>
-                      {shortName}
-                    </span>
-                  </div>
-                </div>
-
-                {(isHovered || isSelected) && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: `${centerX}%`,
-                      top: `calc(${centerY}% - 30px)`,
-                      transform: 'translate(-50%, -100%)',
-                      background: 'var(--surface)',
-                      color: 'var(--text)',
-                      padding: '12px 16px',
-                      borderRadius: 14,
-                      border: `1px solid ${getUnitRiskColor(unit.riskScore)}`,
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                      zIndex: 60,
-                      pointerEvents: 'none',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 6,
-                      minWidth: 220,
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 14, fontWeight: 800 }}>{unit.name}</span>
-                      <span style={{ color: getUnitRiskColor(unit.riskScore), fontWeight: 900, fontSize: 16 }}>{unit.riskScore}</span>
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{unit.dominantHazard}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text)', marginTop: 4 }}>{unit.incidents} active incidents logged</div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          
-          {/* Floating Map Legend */}
-          <div style={{
-            position: 'absolute',
-            bottom: 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 6,
-            background: 'rgba(15, 23, 42, 0.85)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            padding: '10px 20px',
-            borderRadius: 14,
-            backdropFilter: 'blur(4px)',
-            zIndex: 20
-          }}>
-            <div style={{ fontSize: 11, color: '#fff', fontWeight: 700, letterSpacing: '1px' }}>RISK LEVEL</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 11, color: '#ccc', fontWeight: 600 }}>LOW</span>
-              <div style={{ 
-                width: 200, height: 10, borderRadius: 999, 
-                background: 'linear-gradient(to right, #16a34a, #d97706, #ea580c, #dc2626)' 
-              }} />
-              <span style={{ fontSize: 11, color: '#ccc', fontWeight: 600 }}>EXTREME</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Right Sidebar ─────────────────────────────────────────── */}
-      <div className="sidebar-right mobile-grid">
-        <div className="panel-card" style={{ marginBottom: 20 }}>
-          <h3 className="panel-title">Risk Summary</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ width: 12, height: 12, backgroundColor: '#dc2626', borderRadius: 4 }}></span> <span style={{ fontSize: 14, color: 'var(--text)' }}>Extreme Risk</span></div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#dc2626' }}>4</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ width: 12, height: 12, backgroundColor: '#ea580c', borderRadius: 4 }}></span> <span style={{ fontSize: 14, color: 'var(--text)' }}>High Risk</span></div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#ea580c' }}>5</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ width: 12, height: 12, backgroundColor: '#d97706', borderRadius: 4 }}></span> <span style={{ fontSize: 14, color: 'var(--text)' }}>Moderate Risk</span></div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#d97706' }}>6</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ width: 12, height: 12, backgroundColor: '#16a34a', borderRadius: 4 }}></span> <span style={{ fontSize: 14, color: 'var(--text)' }}>Low Risk</span></div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#16a34a' }}>10</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="panel-card" style={{ marginBottom: 20 }}>
-          <h3 className="panel-title">Top Risk Drivers</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {criticalHotspots.map((unit, idx) => (
-              <div key={unit.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <div style={{ width: 22, height: 22, borderRadius: 6, background: '#dc2626', color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>
-                  {idx + 1}
-                </div>
-                <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.4 }}>{unit.name.split('(')[0].trim()}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="panel-card">
-          <h3 className="panel-title">Recommended Actions</h3>
-          <ul style={{ margin: 0, paddingLeft: 20, fontSize: 14, color: 'var(--text)', display: 'flex', flexDirection: 'column', gap: 10, lineHeight: 1.5 }}>
-            <li>Isolate FCC slide valve and schedule emergency inspection.</li>
-            <li>Deploy thermal monitoring drones to ADU fractionation column.</li>
-            <li>Review LOTO procedures in active high-risk zones.</li>
-            <li>Enhance fire-suppression checks in Crude Storage Farm.</li>
-          </ul>
-        </div>
-      </div>
     </div>
   );
 }

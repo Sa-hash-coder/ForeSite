@@ -84,12 +84,12 @@ export default function SubmitReportPage() {
 
   if (success) {
     return (
-      <div style={s.successCard}>
+      <div className="apple-card animate-apple-scale-in" style={s.successCard}>
         <div style={s.successIcon}>✅</div>
         <h2 style={s.successTitle}>{t.submitSuccessTitle}</h2>
         <p style={s.successMsg}>{t.submitSuccessMsg}</p>
         <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => router.push("/worker/reports")} style={s.primaryBtn}>
+          <button onClick={() => router.push("/worker/reports")} className="apple-btn" style={s.primaryBtn}>
             {t.viewMyReports}
           </button>
           <button
@@ -101,6 +101,7 @@ export default function SubmitReportPage() {
               setAudioBase64(null);
               setSuccess(false);
             }}
+            className="apple-btn"
             style={s.outlineBtn}
           >
             {t.submitAnother}
@@ -111,13 +112,13 @@ export default function SubmitReportPage() {
   }
 
   return (
-    <div>
+    <div className="animate-apple-fade-up">
       <h1 style={s.pageTitle}>{t.submitTitle}</h1>
       <p style={s.pageSubtitle}>{t.submitSubtitle}</p>
 
       {error && <div style={s.errorBox}>⚠️ {error}</div>}
 
-      <form onSubmit={handleSubmit} style={s.form}>
+      <form onSubmit={handleSubmit} className="apple-card" style={s.form}>
         {/* Step 1: Location Selection */}
         <div style={s.field}>
           <label style={s.label} htmlFor="location">{t.locationLabel}</label>
@@ -201,6 +202,7 @@ export default function SubmitReportPage() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
+              className="apple-btn"
               style={s.photoBtn}
             >
               {t.photoBtn}
@@ -212,6 +214,7 @@ export default function SubmitReportPage() {
         <button
           type="submit"
           disabled={submitting}
+          className="apple-btn"
           style={{
             ...s.submitBtn,
             opacity: submitting ? 0.7 : 1,
@@ -316,7 +319,7 @@ const s: Record<string, React.CSSProperties> = {
     textAlign: "left",
   },
   submitBtn: {
-    backgroundColor: "#1d4ed8",
+    backgroundColor: "#0A192F",
     color: "#fff",
     border: "none",
     borderRadius: "10px",
@@ -325,7 +328,7 @@ const s: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     width: "100%",
     marginTop: "6px",
-    boxShadow: "0 3px 8px rgba(29, 78, 216, 0.25)",
+    boxShadow: "0 3px 8px rgba(10, 25, 47, 0.25)",
     cursor: "pointer",
   },
   errorBox: {
@@ -350,7 +353,7 @@ const s: Record<string, React.CSSProperties> = {
   successTitle: { fontSize: "22px", fontWeight: 800, color: "var(--text)", marginBottom: "10px" },
   successMsg: { fontSize: "15px", color: "var(--text-muted)", marginBottom: "22px", lineHeight: 1.6 },
   primaryBtn: {
-    backgroundColor: "#1d4ed8",
+    backgroundColor: "#0A192F",
     color: "#fff",
     border: "none",
     borderRadius: "8px",
@@ -361,8 +364,8 @@ const s: Record<string, React.CSSProperties> = {
   },
   outlineBtn: {
     backgroundColor: "#fff",
-    color: "#1d4ed8",
-    border: "1.5px solid #1d4ed8",
+    color: "#0F172A",
+    border: "1.5px solid #D9DEE7",
     borderRadius: "8px",
     padding: "12px 24px",
     fontSize: "15px",
