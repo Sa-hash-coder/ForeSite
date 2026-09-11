@@ -1,8 +1,10 @@
 import mongoose from "mongoose";
 
-const MONGO_URI =
-  process.env.MONGO_URI ||
-  "mongodb+srv://anikettiwari25000_db_user:sihhackathonforesite2026@cluster0.7kwyqof.mongodb.net/";
+const MONGO_URI = process.env.MONGO_URI;
+
+if (!MONGO_URI) {
+  throw new Error("MONGO_URI is not defined");
+}
 
 /**
  * Global is used here to maintain a cached connection across hot-reloads
