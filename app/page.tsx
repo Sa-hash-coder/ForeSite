@@ -61,6 +61,7 @@ export default function ForeSiteLanding() {
     await new Promise((r) => setTimeout(r, 600));
     if (selectedRole === "worker") router.push("/worker");
     else if (selectedRole === "officer") router.push("/officer");
+    else if (selectedRole === "maintenance") router.push("/maintenance");
     else router.push("/worker");
     setIsLoading(false);
   };
