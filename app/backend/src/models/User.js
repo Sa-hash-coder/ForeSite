@@ -23,28 +23,50 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
+<<<<<<< HEAD
       enum: ["worker", "safety_officer", "maintenance", "admin"],
       required: [true, "Role is required"],
+=======
+      enum: [
+        "admin",
+        "safety_officer",
+        "worker",
+        "maintenance",
+        "manager",
+        "technician",
+      ],
+>>>>>>> a5952b3 (Login and admin dashboard)
       default: "worker",
     },
     department: {
       type: String,
+<<<<<<< HEAD
       trim: true,
       default: null,
+=======
+      default: "Safety Operations",
+>>>>>>> a5952b3 (Login and admin dashboard)
     },
     isActive: {
       type: Boolean,
       default: true,
+<<<<<<< HEAD
     },
     lastLogin: {
       type: Date,
       default: null,
+=======
+>>>>>>> a5952b3 (Login and admin dashboard)
     },
   },
   { timestamps: true }
 );
 
+<<<<<<< HEAD
 // Index for role-based queries
 userSchema.index({ role: 1 });
 
 module.exports = mongoose.model("User", userSchema, "userinfo");
+=======
+module.exports = mongoose.model("User", userSchema, "userinfo");
+>>>>>>> a5952b3 (Login and admin dashboard)
