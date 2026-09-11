@@ -6,7 +6,8 @@ import {
   HardHat, ShieldCheck, Wrench, ArrowRight, User, Lock,
   LogIn, UserPlus, X, Zap, BarChart2, Bell, FileCheck,
   Check, Activity, Cpu, Radio, Menu, ChevronRight, FileText,
-  TrendingUp, Users, Shield, ArrowUpRight
+  TrendingUp, Users, Shield, ArrowUpRight, Flame, Factory,
+  BookOpen, Download, Layers
 } from "lucide-react";
 import ThemeToggle from "./components/ThemeToggle";
 
@@ -45,6 +46,7 @@ export default function ForeSiteLanding() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeNav, setActiveNav] = useState("Home");
 
   const openAuth = (tab: Tab, role?: Role) => {
     setActiveTab(tab);
@@ -64,13 +66,36 @@ export default function ForeSiteLanding() {
   };
 
   const navLinks = [
-    { label: "Home", href: "#", active: true },
+    { label: "Home", href: "#hero" },
     { label: "Platform", href: "#portals" },
     { label: "Features", href: "#features" },
-    { label: "Solutions", href: "#portals" },
-    { label: "Resources", href: "#features" },
-    { label: "About", href: "#stats" },
+    { label: "Solutions", href: "#solutions" },
+    { label: "Resources", href: "#resources" },
+    { label: "About", href: "#about" },
   ];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + 120;
+      const sections = [
+        { label: "Home", id: "hero" },
+        { label: "Platform", id: "portals" },
+        { label: "Features", id: "features" },
+        { label: "Solutions", id: "solutions" },
+        { label: "Resources", id: "resources" },
+        { label: "About", id: "about" },
+      ];
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const el = document.getElementById(sections[i].id);
+        if (el && el.offsetTop <= scrollPos) {
+          setActiveNav(sections[i].label);
+          break;
+        }
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const portalCards = [
     {
@@ -123,7 +148,7 @@ export default function ForeSiteLanding() {
 
           {/* Logo + Nav */}
           <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
-            <a href="#" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
+            <a href="#hero" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
               <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: "#0A192F", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <ShieldCheck style={{ width: 20, height: 20, color: "white" }} strokeWidth={2.4} />
               </div>
@@ -135,25 +160,30 @@ export default function ForeSiteLanding() {
 
             {/* Desktop Nav */}
             <nav style={{ display: "flex", alignItems: "center", gap: 32 }} className="hide-mobile">
-              {navLinks.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  style={{
-                    fontSize: 15,
-                    fontWeight: item.active ? 700 : 500,
-                    color: item.active ? "#0F172A" : "#475569",
-                    textDecoration: "none",
-                    position: "relative",
-                    paddingBottom: 4,
-                  }}
-                >
-                  {item.label}
-                  {item.active && (
-                    <span style={{ position: "absolute", bottom: -2, left: 0, right: 0, height: 2.5, backgroundColor: "#1D4ED8", borderRadius: 2 }} />
-                  )}
-                </a>
-              ))}
+              {navLinks.map((item) => {
+                const isActive = activeNav === item.label;
+                return (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setActiveNav(item.label)}
+                    style={{
+                      fontSize: 15,
+                      fontWeight: isActive ? 700 : 500,
+                      color: isActive ? "#0F172A" : "#475569",
+                      textDecoration: "none",
+                      position: "relative",
+                      paddingBottom: 4,
+                      transition: "color 0.15s",
+                    }}
+                  >
+                    {item.label}
+                    {isActive && (
+                      <span style={{ position: "absolute", bottom: -2, left: 0, right: 0, height: 2.5, backgroundColor: "#1D4ED8", borderRadius: 2 }} />
+                    )}
+                  </a>
+                );
+              })}
             </nav>
           </div>
 
@@ -191,15 +221,18 @@ export default function ForeSiteLanding() {
               <a
                 key={item.label}
                 href={item.href}
-                onClick={() => setMobileNavOpen(false)}
+                onClick={() => {
+                  setActiveNav(item.label);
+                  setMobileNavOpen(false);
+                }}
                 style={{
                   display: "block",
                   padding: "10px 14px",
                   borderRadius: 6,
                   fontSize: 14,
-                  fontWeight: item.active ? 700 : 500,
-                  color: item.active ? "#1D4ED8" : "#475569",
-                  backgroundColor: item.active ? "#EFF6FF" : "transparent",
+                  fontWeight: activeNav === item.label ? 700 : 500,
+                  color: activeNav === item.label ? "#1D4ED8" : "#475569",
+                  backgroundColor: activeNav === item.label ? "#EFF6FF" : "transparent",
                   textDecoration: "none",
                   marginBottom: 4,
                 }}
@@ -215,8 +248,8 @@ export default function ForeSiteLanding() {
         )}
       </header>
 
-      {/* ─── HERO ──────────────────────────────────────────────────────── */}
-      <section style={{ position: "relative", width: "100%", backgroundColor: "#F8FAFC", borderBottom: "1px solid #E2E8F0", overflow: "hidden" }}>
+      {/* ─── 1. HERO SECTION (#hero) ────────────────────────────────────── */}
+      <section id="hero" className="scroll-target" style={{ position: "relative", width: "100%", backgroundColor: "#F8FAFC", borderBottom: "1px solid #E2E8F0", overflow: "hidden" }}>
 
         {/* Refinery Background — covers full right 60%, very subtle */}
         <div
@@ -352,9 +385,7 @@ export default function ForeSiteLanding() {
 
                   {/* P&ID Schematic */}
                   <div style={{ backgroundColor: "#070E1A", borderRadius: 10, border: "1px solid #17243E", padding: 16, position: "relative", height: 190, overflow: "hidden" }}>
-                    {/* Dot grid */}
                     <div style={{ position: "absolute", inset: 0, opacity: 0.2, backgroundImage: "radial-gradient(#334155 1px, transparent 1px)", backgroundSize: "13px 13px" }} />
-                    {/* Pipes SVG */}
                     <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
                       <line x1="12%" y1="38%" x2="88%" y2="38%" stroke="#1E3A5F" strokeWidth="2.5" />
                       <line x1="50%" y1="38%" x2="50%" y2="80%" stroke="#1E3A5F" strokeWidth="2.5" />
@@ -364,7 +395,6 @@ export default function ForeSiteLanding() {
                     </svg>
                     <span style={{ position: "absolute", top: "18%", right: "11%", fontSize: 10, fontFamily: "monospace", color: "#94A3B8" }}>FCC-01</span>
                     <span style={{ position: "absolute", bottom: "12%", right: "11%", fontSize: 10, fontFamily: "monospace", color: "#94A3B8" }}>HDP-02</span>
-                    {/* Nodes */}
                     <div style={{ position: "absolute", top: "31%", left: "8%", display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#10B981", display: "inline-block" }} />
                       <span style={{ fontSize: 11, fontFamily: "monospace", color: "#CBD5E1" }}>P-101</span>
@@ -381,7 +411,6 @@ export default function ForeSiteLanding() {
 
                   {/* KPI Cards */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {/* KPI 1 */}
                     <div style={{ backgroundColor: "#0E182B", border: "1px solid #1A2744", borderRadius: 8, padding: "10px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div>
                         <div style={{ fontSize: 10, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Total Reports</div>
@@ -396,7 +425,6 @@ export default function ForeSiteLanding() {
                         <span style={{ width: 5, height: 22, backgroundColor: "#10B981", borderRadius: "2px 2px 0 0", display: "inline-block" }} />
                       </div>
                     </div>
-                    {/* KPI 2 */}
                     <div style={{ backgroundColor: "#0E182B", border: "1px solid #1A2744", borderRadius: 8, padding: "10px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div>
                         <div style={{ fontSize: 10, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>SIF Precursors</div>
@@ -411,7 +439,6 @@ export default function ForeSiteLanding() {
                         <span style={{ width: 5, height: 22, backgroundColor: "#EF4444", borderRadius: "2px 2px 0 0", display: "inline-block" }} />
                       </div>
                     </div>
-                    {/* KPI 3 */}
                     <div style={{ backgroundColor: "#0E182B", border: "1px solid #1A2744", borderRadius: 8, padding: "10px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div>
                         <div style={{ fontSize: 10, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>High Risk Items</div>
@@ -461,36 +488,13 @@ export default function ForeSiteLanding() {
         </div>
       </section>
 
-      {/* ─── FEATURE RIBBON ──────────────────────────────────────────── */}
-      <section id="features" style={{ backgroundColor: "white", borderBottom: "1px solid #E2E8F0", padding: "48px 0" }}>
-        <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 40 }} className="feature-grid">
-            {[
-              { icon: FileText, title: "Unified Safety Data", desc: "Ingest and analyze reports from across your organization." },
-              { icon: Cpu, title: "AI-Powered Insights", desc: "Identify SIF precursors using advanced NLP models." },
-              { icon: TrendingUp, title: "Actionable Intelligence", desc: "Prioritize risks and enable timely corrective action." },
-              { icon: Users, title: "Built for High-Risk Sites", desc: "Designed for refineries, chemical plants, and heavy operations." },
-            ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Icon style={{ width: 22, height: 22, color: "#0F172A" }} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{title}</h4>
-                  <p style={{ fontSize: 14, color: "#64748B", lineHeight: 1.6 }}>{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── PORTALS SECTION ─────────────────────────────────────────── */}
-      <section id="portals" style={{ padding: "80px 0" }}>
+      {/* ─── 2. PLATFORM SECTION (#portals) ────────────────────────────── */}
+      <section id="portals" className="scroll-target" style={{ padding: "88px 0", backgroundColor: "#F8FAFC" }}>
         <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
           <div style={{ marginBottom: 48 }}>
             <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.2em", color: "#1D4ED8", display: "block", marginBottom: 10 }}>OPERATIONAL ACCESS TIERS</span>
             <h2 style={{ fontSize: "clamp(1.8rem, 3vw, 2.6rem)", fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px" }}>Three Portals, One Unified Platform</h2>
+            <p style={{ fontSize: 16, color: "#64748B", marginTop: 8, maxWidth: 640 }}>Dedicated interfaces tailored for frontline workers, safety leadership, and technical maintenance teams.</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 28 }} className="portal-grid">
             {portalCards.map((card) => {
@@ -529,9 +533,234 @@ export default function ForeSiteLanding() {
         </div>
       </section>
 
-      {/* ─── STATS STRIP ─────────────────────────────────────────────── */}
-      <section id="stats" style={{ paddingBottom: 80 }}>
+      {/* ─── 3. FEATURES SECTION (#features) ─────────────────────────────── */}
+      <section id="features" className="scroll-target" style={{ backgroundColor: "white", borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0", padding: "88px 0" }}>
         <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
+          <div style={{ marginBottom: 48 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.2em", color: "#1D4ED8", display: "block", marginBottom: 10 }}>CORE SYSTEM CAPABILITIES</span>
+            <h2 style={{ fontSize: "clamp(1.8rem, 3vw, 2.6rem)", fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px" }}>Industrial Intelligence Engineered for Zero Incidents</h2>
+            <p style={{ fontSize: 16, color: "#64748B", marginTop: 8, maxWidth: 640 }}>Purpose-built for harsh plant operations, bridging physical equipment telemetry with cognitive safety triage.</p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 32 }} className="feature-grid">
+            {[
+              { icon: FileText, title: "Unified Safety Data", desc: "Ingest and structure multi-format hazard logs, speech recordings, and sensor alerts across distributed operations.", tag: "DATA INGESTION" },
+              { icon: Cpu, title: "AI-Powered NLP Insights", desc: "Proprietary industrial LLM pipeline detects SIF precursors, root causal trends, and recurrence patterns instantly.", tag: "COGNITIVE MODEL" },
+              { icon: TrendingUp, title: "Actionable Risk Triage", desc: "Automated scoring aligns work orders directly with OSHA 1910 benchmarks to eradicate latent process hazards.", tag: "PROCESS SAFETY" },
+              { icon: Users, title: "Built for Heavy Industry", desc: "Hardened for refineries, chemical complexes, and upstream energy plants with full offline capability.", tag: "RELIABILITY" },
+            ].map(({ icon: Icon, title, desc, tag }) => (
+              <div key={title} style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: "28px 24px", display: "flex", flexDirection: "column" }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#1D4ED8", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 16 }}>{tag}</span>
+                <div style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: "white", border: "1px solid #E2E8F0", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                  <Icon style={{ width: 22, height: 22, color: "#0F172A" }} />
+                </div>
+                <h4 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>{title}</h4>
+                <p style={{ fontSize: 14, color: "#64748B", lineHeight: 1.6 }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 4. SOLUTIONS SECTION (#solutions) ───────────────────────────── */}
+      <section id="solutions" className="scroll-target" style={{ padding: "88px 0", backgroundColor: "#F8FAFC" }}>
+        <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
+          <div style={{ marginBottom: 48 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.2em", color: "#1D4ED8", display: "block", marginBottom: 10 }}>ENTERPRISE RISK MITIGATION</span>
+            <h2 style={{ fontSize: "clamp(1.8rem, 3vw, 2.6rem)", fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px" }}>Solutions by Operational Environment</h2>
+            <p style={{ fontSize: 16, color: "#64748B", marginTop: 8, maxWidth: 640 }}>Targeted safety automation tailored to the distinct mechanical, chemical, and environmental risks of high-hazard plants.</p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 28 }} className="solutions-grid">
+            {[
+              {
+                icon: Flame,
+                title: "Refineries & Petrochemical",
+                sector: "DOWNSTREAM OIL & GAS",
+                challenge: "High explosive atmospheres, fugitive volatile hydrocarbon leaks, and intense continuous hot work.",
+                solution: "Voice-driven ATEX Zone-safe reporting, automated LEL sensor alert correlation, and hot-work permit hazard verification.",
+                metric: "42% Reduction in Near-Miss Escalation"
+              },
+              {
+                icon: Factory,
+                title: "Chemical Processing & Storage",
+                sector: "PROCESS SAFETY MANAGEMENT",
+                challenge: "Corrosive chemical exposures, toxic vapor clouds, and stringent OSHA 1910.119 PSM compliance standards.",
+                solution: "Dynamic reactive chemical hazard matrix, flange valve inspection log verification, and instant regulatory report bundling.",
+                metric: "100% Audit-Ready Compliance Trails"
+              },
+              {
+                icon: Layers,
+                title: "Heavy Manufacturing & Assembly",
+                sector: "INDUSTRIAL FABRICATION",
+                challenge: "High-decibel ambient noise, heavy overhead crane operations, and complex multi-crew lockout/tagout (LOTO).",
+                solution: "Noise-canceling acoustic voice intake, digital LOTO clearance handshakes, and crane exclusion zone telemetry.",
+                metric: "3.5x Faster Hazard Remediation Turnaround"
+              }
+            ].map(({ icon: Icon, title, sector, challenge, solution, metric }) => (
+              <div
+                key={title}
+                style={{
+                  backgroundColor: "white",
+                  border: "1px solid #D9DEE7",
+                  borderRadius: 14,
+                  padding: "32px 28px",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between"
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: "#0A192F", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Icon style={{ width: 22, height: 22, color: "#38BDF8" }} />
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "#64748B", letterSpacing: "0.1em", textTransform: "uppercase" }}>{sector}</span>
+                  </div>
+
+                  <h3 style={{ fontSize: 19, fontWeight: 800, color: "#0F172A", marginBottom: 12 }}>{title}</h3>
+                  
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#DC2626", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Primary Challenge</div>
+                    <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.5 }}>{challenge}</p>
+                  </div>
+
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#1D4ED8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>ForeSite Solution</div>
+                    <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.5 }}>{solution}</p>
+                  </div>
+                </div>
+
+                <div style={{ paddingTop: 16, borderTop: "1px solid #F1F5F9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{metric}</span>
+                  <button onClick={() => openAuth("signup")} style={{ fontSize: 13, fontWeight: 700, color: "#1D4ED8", background: "none", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    Deploy Solution <ArrowRight style={{ width: 14, height: 14 }} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 5. RESOURCES SECTION (#resources) ──────────────────────────── */}
+      <section id="resources" className="scroll-target" style={{ backgroundColor: "white", borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0", padding: "88px 0" }}>
+        <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
+          <div style={{ marginBottom: 48 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.2em", color: "#1D4ED8", display: "block", marginBottom: 10 }}>TECHNICAL KNOWLEDGE & COMPLIANCE</span>
+            <h2 style={{ fontSize: "clamp(1.8rem, 3vw, 2.6rem)", fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px" }}>Safety Whitepapers, Specs &amp; Guidelines</h2>
+            <p style={{ fontSize: 16, color: "#64748B", marginTop: 8, maxWidth: 640 }}>Access technical frameworks, regulatory audit blueprints, and engineering documentation.</p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }} className="resource-grid">
+            {[
+              {
+                category: "REGULATORY COMPLIANCE",
+                title: "OSHA 1910 & PSM Audit Handbook",
+                format: "PDF GUIDE",
+                pages: "24 Pages",
+                desc: "Complete operational blueprint for structuring digital safety reports to meet OSHA inspection standards."
+              },
+              {
+                category: "AI ARCHITECTURE",
+                title: "SIF Precursor Detection Whitepaper",
+                format: "TECHNICAL PAPER",
+                pages: "36 Pages",
+                desc: "Statistical analysis of unsafe conditions and NLP vector modeling for fatal precursor early detection."
+              },
+              {
+                category: "FIELD AUDIO ENGINEERING",
+                title: "High-Noise Speech Recognition Spec",
+                format: "BENCHMARK SPEC",
+                pages: "18 Pages",
+                desc: "Performance benchmarks of multilingual acoustic models in >95dB continuous industrial noise."
+              },
+              {
+                category: "INTEGRATION",
+                title: "SCADA & Telemetry API Reference",
+                format: "DEVELOPER SPEC",
+                pages: "REST & Modbus",
+                desc: "Integration protocol schemas for connecting ForeSite risk triage to distributed control systems."
+              },
+            ].map(({ category, title, format, pages, desc }) => (
+              <div
+                key={title}
+                style={{
+                  backgroundColor: "#F8FAFC",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: 12,
+                  padding: "26px 22px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between"
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "#1D4ED8", letterSpacing: "0.1em", textTransform: "uppercase" }}>{category}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "#64748B", backgroundColor: "#E2E8F0", padding: "2px 6px", borderRadius: 4 }}>{format}</span>
+                  </div>
+                  <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginBottom: 10, lineHeight: 1.3 }}>{title}</h4>
+                  <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.6, marginBottom: 16 }}>{desc}</p>
+                </div>
+
+                <div style={{ paddingTop: 14, borderTop: "1px solid #E2E8F0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>{pages}</span>
+                  <a
+                    href="#hero"
+                    onClick={(e) => { e.preventDefault(); openAuth("signup"); }}
+                    style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", display: "inline-flex", alignItems: "center", gap: 5, textDecoration: "none" }}
+                  >
+                    Download <Download style={{ width: 14, height: 14, color: "#1D4ED8" }} />
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 6. ABOUT SECTION (#about) ──────────────────────────────────── */}
+      <section id="about" className="scroll-target" style={{ padding: "88px 0 96px", backgroundColor: "#F8FAFC" }}>
+        <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center", marginBottom: 64 }} className="about-grid">
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.2em", color: "#1D4ED8", display: "block", marginBottom: 10 }}>MISSION &amp; RELIABILITY</span>
+              <h2 style={{ fontSize: "clamp(1.8rem, 3vw, 2.6rem)", fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px", lineHeight: 1.15, marginBottom: 20 }}>
+                Protecting Frontline Workforce with Zero Compromise
+              </h2>
+              <p style={{ fontSize: 16, color: "#475569", lineHeight: 1.7, marginBottom: 16 }}>
+                ForeSite was founded by industrial process safety engineers, data scientists, and former refinery operations managers. Our technology transforms passive hazard reporting into an active, automated defense layer that predicts and eliminates catastrophic risks.
+              </p>
+              <p style={{ fontSize: 15, color: "#64748B", lineHeight: 1.7 }}>
+                Operating across critical industrial assets, ForeSite ensures continuous OSHA 1910 audit compliance, prevents loss of containment, and ensures every frontline worker returns home safely every single day.
+              </p>
+            </div>
+
+            <div style={{ backgroundColor: "#0A192F", borderRadius: 16, padding: "36px 32px", color: "white", border: "1px solid #1E293B", boxShadow: "0 12px 36px rgba(0,0,0,0.25)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                <ShieldCheck style={{ width: 28, height: 28, color: "#38BDF8" }} />
+                <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Enterprise Security &amp; Uptime Standard</span>
+              </div>
+              <p style={{ fontSize: 14, color: "#94A3B8", lineHeight: 1.65, marginBottom: 24 }}>
+                ForeSite is architected with complete failover redundancy, end-to-end telemetry encryption, on-premise air-gapped deployment capability, and SOC-2 Type II audit certification.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, paddingTop: 20, borderTop: "1px solid #1E3A5F" }}>
+                <div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: "#38BDF8" }}>99.99%</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", marginTop: 2 }}>High-Availability Uptime</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: "#10B981" }}>SOC-2 / ISO</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", marginTop: 2 }}>Type II Certified</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats strip */}
           <div style={{ backgroundColor: "white", border: "1px solid #D9DEE7", borderRadius: 14, padding: "56px 48px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 32, textAlign: "center" }} className="stats-grid">
               {[
@@ -549,6 +778,7 @@ export default function ForeSiteLanding() {
               ))}
             </div>
           </div>
+
         </div>
       </section>
 
@@ -562,7 +792,14 @@ export default function ForeSiteLanding() {
           </div>
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
             {navLinks.map((item) => (
-              <a key={item.label} href={item.href} style={{ fontSize: 14, color: "#64748B", textDecoration: "none", fontWeight: 500 }}>{item.label}</a>
+              <a
+                key={item.label}
+                href={item.href}
+                onClick={() => setActiveNav(item.label)}
+                style={{ fontSize: 14, color: "#64748B", textDecoration: "none", fontWeight: 500 }}
+              >
+                {item.label}
+              </a>
             ))}
           </div>
         </div>
@@ -640,17 +877,27 @@ export default function ForeSiteLanding() {
         </div>
       )}
 
-      {/* ─── RESPONSIVE STYLES ───────────────────────────────────────── */}
+      {/* ─── RESPONSIVE & SCROLL STYLES ───────────────────────────────── */}
       <style>{`
+        html {
+          scroll-behavior: smooth;
+        }
+        .scroll-target {
+          scroll-margin-top: 72px;
+        }
         @media (max-width: 1024px) {
           .hero-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
-          .feature-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 28px !important; }
+          .feature-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 20px !important; }
+          .solutions-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+          .resource-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 20px !important; }
           .portal-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
+          .about-grid { grid-template-columns: 1fr !important; gap: 36px !important; }
           .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
         @media (max-width: 640px) {
           .hero-grid { gap: 28px !important; }
           .feature-grid { grid-template-columns: 1fr !important; }
+          .resource-grid { grid-template-columns: 1fr !important; }
           .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .hide-mobile { display: none !important; }
           .hide-mobile-sm { display: none !important; }
