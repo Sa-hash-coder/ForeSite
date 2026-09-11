@@ -2,20 +2,24 @@
 
 :root {
   --white: #ffffff;
-  --bg: #F5F7FA;
+  --bg: #F8FAFC;
   --surface: #ffffff;
-  --surface-subtle: #f1f5f9;
+  --surface-subtle: #F1F5F9;
   --border: #D9DEE7;
-  --text: #111827;
+  --border-subtle: #E2E8F0;
+  --text: #0F172A;
   --text-muted: #475569;
   --text-light: #64748B;
   
-  /* Primary dark & blue */
-  --primary-dark: #0F172A;
+  /* Primary dark navy/black & industrial tones matching signup/login */
+  --primary-dark: #0A192F;
   --secondary-dark: #1E293B;
-  --primary: #1D4ED8;
-  --primary-hover: #1E40AF;
-  --primary-light: #eff6ff;
+  --primary: #0A192F;
+  --primary-hover: #061324;
+  --primary-light: #F1F5F9;
+  --primary-border: #D9DEE7;
+  --accent-blue: #1D4ED8;
+  --accent-blue-light: #EFF6FF;
   
   /* Single-domain safety risk indicators */
   --critical: #B91C1C;

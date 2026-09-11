@@ -118,7 +118,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)",
+    boxShadow: "0 4px 12px rgba(10, 25, 47, 0.25)",
   },
   name: {
     fontSize: 20,
@@ -129,7 +129,7 @@ const styles: Record<string, React.CSSProperties> = {
   role: {
     fontSize: 14,
     fontWeight: 600,
-    color: "var(--primary)",
+    color: "#0F172A",
     margin: "0 0 2px 0",
   },
   memberSince: {

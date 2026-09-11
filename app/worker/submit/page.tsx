@@ -319,7 +319,7 @@ const s: Record<string, React.CSSProperties> = {
     textAlign: "left",
   },
   submitBtn: {
-    backgroundColor: "#1d4ed8",
+    backgroundColor: "#0A192F",
     color: "#fff",
     border: "none",
     borderRadius: "10px",
@@ -328,7 +328,7 @@ const s: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     width: "100%",
     marginTop: "6px",
-    boxShadow: "0 3px 8px rgba(29, 78, 216, 0.25)",
+    boxShadow: "0 3px 8px rgba(10, 25, 47, 0.25)",
     cursor: "pointer",
   },
   errorBox: {
@@ -353,7 +353,7 @@ const s: Record<string, React.CSSProperties> = {
   successTitle: { fontSize: "22px", fontWeight: 800, color: "var(--text)", marginBottom: "10px" },
   successMsg: { fontSize: "15px", color: "var(--text-muted)", marginBottom: "22px", lineHeight: 1.6 },
   primaryBtn: {
-    backgroundColor: "#1d4ed8",
+    backgroundColor: "#0A192F",
     color: "#fff",
     border: "none",
     borderRadius: "8px",
@@ -364,8 +364,8 @@ const s: Record<string, React.CSSProperties> = {
   },
   outlineBtn: {
     backgroundColor: "#fff",
-    color: "#1d4ed8",
-    border: "1.5px solid #1d4ed8",
+    color: "#0F172A",
+    border: "1.5px solid #D9DEE7",
     borderRadius: "8px",
     padding: "12px 24px",
     fontSize: "15px",

@@ -109,7 +109,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   header: {
     width: "100%",
-    backgroundColor: "#1d4ed8",
+    backgroundColor: "#0A192F",
     padding: "14px 24px",
     display: "flex",
     alignItems: "center",
@@ -117,7 +117,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   headerLogo: {
     fontSize: "20px",
-    color: "#fbbf24",
+    color: "#ffffff",
   },
   headerTitle: {
     fontSize: "18px",
@@ -127,7 +127,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   card: {
     backgroundColor: "#fff",
-    border: "1px solid var(--border)",
+    border: "1px solid #D9DEE7",
     borderRadius: "8px",
     padding: "36px 32px",
     width: "100%",
@@ -174,7 +174,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--text)",
   },
   input: {
-    border: "1px solid var(--border)",
+    border: "1px solid #D9DEE7",
     borderRadius: "6px",
     padding: "10px 12px",
     fontSize: "15px",
@@ -184,7 +184,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
   },
   button: {
-    backgroundColor: "var(--primary)",
+    backgroundColor: "#0A192F",
     color: "#fff",
     border: "none",
     borderRadius: "6px",

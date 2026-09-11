@@ -74,7 +74,7 @@ function WorkerAppContent({ children }: { children: React.ReactNode }) {
         <div style={s.sidebarHeader}>
           <Link href="/worker" style={s.brandWrap}>
             <div style={s.logoBadge}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
             </div>
@@ -338,8 +338,8 @@ const s: Record<string, React.CSSProperties> = {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: "var(--primary-light)",
-    border: "1px solid var(--primary-border)",
+    backgroundColor: "#0A192F",
+    border: "1px solid #1E293B",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

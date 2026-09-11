@@ -104,7 +104,7 @@ const s: Record<string, React.CSSProperties> = {
     color: "var(--text)",
   },
   newBtn: {
-    backgroundColor: "#1d4ed8",
+    backgroundColor: "#0A192F",
     color: "#fff",
     textDecoration: "none",
     padding: "8px 14px",
@@ -129,9 +129,9 @@ const s: Record<string, React.CSSProperties> = {
     color: "var(--text-muted)",
   },
   filterChipActive: {
-    backgroundColor: "#eff6ff",
-    borderColor: "#1d4ed8",
-    color: "#1d4ed8",
+    backgroundColor: "#0A192F",
+    borderColor: "#0A192F",
+    color: "#ffffff",
     fontWeight: 700,
   },
   card: {

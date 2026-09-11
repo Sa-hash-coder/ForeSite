@@ -32,7 +32,7 @@ export default function WorkerDashboard() {
       <div className="stats-grid-responsive" style={styles.statsGrid}>
         {/* 1. Total Reports */}
         <div className="apple-card animate-apple-fade-up delay-1" style={styles.statCard}>
-          <div style={{ ...styles.statIconBox, backgroundColor: "#eff6ff", color: "#2563eb" }}>
+          <div style={{ ...styles.statIconBox, backgroundColor: "#F1F5F9", color: "#2563eb" }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -114,7 +114,7 @@ export default function WorkerDashboard() {
           <Link href="/worker/submit" className="banner-dropzone-box apple-btn" style={styles.uploadDropzone}>
             <div style={styles.dropzoneInner}>
               <div style={styles.uploadIconCircle}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0A192F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
@@ -370,7 +370,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 20,
   },
   bannerCard: {
-    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+    background: "#0A192F", border: "1px solid #1E293B",
     borderRadius: 16,
     padding: 24,
     color: "#ffffff",
@@ -378,7 +378,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     alignItems: "center",
     gap: 20,
-    boxShadow: "0 8px 20px rgba(37, 99, 235, 0.25)",
+    boxShadow: "0 8px 24px rgba(10, 25, 47, 0.3)",
     position: "relative",
     overflow: "hidden",
   },
@@ -403,7 +403,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: 8,
     backgroundColor: "#ffffff",
-    color: "var(--primary)",
+    color: "#0A192F",
     fontWeight: 700,
     fontSize: 14,
     padding: "10px 18px",
@@ -415,7 +415,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: 130,
     height: 110,
     backgroundColor: "rgba(255, 255, 255, 0.95)",
-    border: "2px dashed #bfdbfe",
+    border: "2px dashed #CBD5E1",
     borderRadius: 14,
     display: "flex",
     alignItems: "center",
@@ -435,7 +435,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: 36,
     height: 36,
     borderRadius: "50%",
-    backgroundColor: "#eff6ff",
+    backgroundColor: "#F1F5F9",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -443,7 +443,7 @@ const styles: Record<string, React.CSSProperties> = {
   uploadDropzoneLabel: {
     fontSize: 11,
     fontWeight: 700,
-    color: "var(--primary)",
+    color: "#0A192F",
   },
   impactCard: {
     backgroundColor: "var(--surface)",
@@ -526,7 +526,7 @@ const styles: Record<string, React.CSSProperties> = {
   viewAllLink: {
     fontSize: 13,
     fontWeight: 700,
-    color: "var(--primary)",
+    color: "#0A192F",
     textDecoration: "none",
   },
   reportsList: {
